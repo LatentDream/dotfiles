@@ -6,7 +6,7 @@
 OS_TYPE=""
 
 # Define packages per OS
-PACKAGES_LINUX=("gitconfig" "nvim" "tmux" "bash" "k9s" "lsd" "scripts" "zed" "yazi" "merlion" "scripts")
+PACKAGES_LINUX=("gitconfig" "nvim" "tmux" "bash" "k9s" "lsd" "scripts" "zed" "yazi" "merlion" "scripts", "wezterm")
 PACKAGES_MAC=("gitconfig" "nvim" "tmux" "zsh" "karabiner" "lazygit" "btop" "jetbrains" "k9s" "lsd" "merlion" "scripts" "yazi" "zed")
 
 # Colors for output
