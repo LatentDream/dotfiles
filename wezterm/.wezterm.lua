@@ -16,7 +16,7 @@ config.enable_wayland = false
 config.font = wezterm.font("JetBrainsMono Nerd Font")
 config.cell_width = 0.9
 config.window_background_opacity = 1.0
-config.font_size = 18.0
+config.font_size = 21.0
 
 -- Window Padding --------------------------------------------
 config.window_padding = {
@@ -33,6 +33,11 @@ config.use_fancy_tab_bar = false
 -- Disable all pane controls since using tmux ----------------
 config.disable_default_key_bindings = true
 config.keys = {
+    {
+        key = "V",
+        mods = "CTRL|SHIFT",
+        action = wezterm.action.PasteFrom("Clipboard"),
+    },
     {
         key = "V",
         mods = "SUPER",
@@ -59,63 +64,8 @@ config.keys = {
 }
 
 -- Define themes --------------------------------------------
-local themes = {
-    gruvbox = {
-        background = "#282828",
-        foreground = "#ebdbb2",
-        cursor_bg = "#ebdbb2",
-        cursor_border = "#ebdbb2",
-        cursor_fg = "#282828",
-        selection_bg = "#504945",
-        selection_fg = "#ebdbb2",
-        ansi = {
-            "#282828", -- black
-            "#cc241d", -- red
-            "#98971a", -- green
-            "#d79921", -- yellow
-            "#458588", -- blue
-            "#b16286", -- magenta
-            "#689d6a", -- cyan
-            "#a89984", -- white
-        },
-        brights = {
-            "#928374", -- bright black
-            "#fb4934", -- bright red
-            "#b8bb26", -- bright green
-            "#fabd2f", -- bright yellow
-            "#83a598", -- bright blue
-            "#d3869b", -- bright magenta
-            "#8ec07c", -- bright cyan
-            "#ebdbb2", -- bright white
-        },
-        tab_bar = {
-            background = "#282828",
-            active_tab = {
-                bg_color = "#282828",
-                fg_color = "#ebdbb2",
-                intensity = "Normal",
-                underline = "None",
-                italic = false,
-                strikethrough = false,
-            },
-            inactive_tab = {
-                bg_color = "#282828",
-                fg_color = "#a89984",
-                intensity = "Normal",
-                underline = "None",
-                italic = false,
-                strikethrough = false,
-            },
-            new_tab = {
-                bg_color = "#282828",
-                fg_color = "#ebdbb2",
-            },
-        },
-    },
-}
-
--- Set initial color scheme and colors
-config.colors = themes.gruvbox
+local theme = require 'theme'
+config.colors = theme
 
 config.window_frame = {
     font = wezterm.font({ family = "Iosevka Custom", weight = "Regular" }),

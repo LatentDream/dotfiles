@@ -1,0 +1,1 @@
+/home/latent/.config/omarchy/current/theme/wezterm.lua
