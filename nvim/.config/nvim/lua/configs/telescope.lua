@@ -64,11 +64,11 @@ local function telescope_live_grep_open_files()
   }
 end
 
-vim.keymap.set('n', '<leader>/', telescope_live_grep_open_files, { desc = 'Grep in Open Files' })
+vim.keymap.set('n', '<leader>/', require('fzf-lua').grep, { desc = 'Grep in Open Files' })
 vim.keymap.set('n', '<leader>sd', require('fzf-lua').diagnostics_document, { desc = 'Search Diagnostics' })
 vim.keymap.set('n', '<leader>ss', require('fzf-lua').builtin, { desc = 'Search Selector' })
 vim.keymap.set('n', '<leader>sg', require('fzf-lua').grep, { desc = 'Search by Grep' })
-vim.keymap.set('n', '<C-g>', require('fzf-lua').grep, { desc = 'Search by Grep' })
+vim.keymap.set('n', '<C-g>', telescope_live_grep_open_files, { desc = 'Search by Grep' })
 vim.keymap.set('n', '<leader>sw', require('fzf-lua').grep_cword, { desc = 'Search current Word' })
 vim.keymap.set('n', '<leader>w', require('fzf-lua').grep_cword, { desc = 'Search current Word' })
 vim.keymap.set('n', '<leader>sr', require('fzf-lua').resume, { desc = 'Search Resume' })
