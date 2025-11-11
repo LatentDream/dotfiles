@@ -22,7 +22,7 @@ alias startgit='cd `git rev-parse --show-toplevel` && git checkout main && git p
 alias cg='cd `git rev-parse --show-toplevel`'
 alias adog='git log --all --decorate --oneline --graph'
 # Tmux
-alias t='tmux'
+alias t='tmux attach || tmux new-session'
 # Software
 alias v='nvim'
 alias y='yazi'
@@ -37,6 +37,17 @@ eval "$(zoxide init bash)"
 alias k='kubectl'
 alias kd='kubectl describe'
 alias kg='kubectl get'
+
+alias ..='cd ..'
+alias 2..='cd ../..'
+alias 3..='cd ../../..'
+alias 4..='cd ../../../..'
+alias 5..='cd ../../../../..'
+
+alias ..l='cd .. && ls'
+alias :q='exit'
+alias cd..='cd ..'
+alias sudp='sudo'
 # -------------------------------
 
 # Tmux session start
@@ -66,51 +77,9 @@ export PATH="$HOME/tools/:$PATH"
 eval "$(zoxide init bash)"
 eval "$(fzf --bash)"
 
-# Ctrl + f to find a folder + start session -------
-fzf_tmux_dirs() {
-    # Array of directories to search
-    local search_dirs=("$@")
-
-    # If no directories provided, set some defaults
-    if [[ ${#search_dirs[@]} -eq 0 ]]; then
-        search_dirs=(
-            "$HOME/"
-            "$HOME/repo"
-            "$HOME/tmp"
-            "$HOME/Documents/repo"
-            "$HOME/repo/tmp"
-            "$HOME/repo/scripts.git/"
-        )
-    fi
-
-    # Find directories and create a clean display format
-    local selected_display=$(find "${search_dirs[@]}" -maxdepth 1 -type d 2>/dev/null | \
-        sed "s|^$HOME/|~/|" | \
-        fzf --height 60% --reverse --border \
-            --preview 'ls -la $(echo {} | sed "s|^~/|$HOME/|")' \
-            --preview-window 'right:50%:wrap')
-
-    if [[ -n "$selected_display" ]]; then
-        # Convert back to full path
-        local selected_dir="${selected_display/#\~/$HOME}"
-        local session_name=$(basename "$selected_dir" | tr . _)
-
-        if [[ -z "$TMUX" ]]; then
-            # Not in tmux - create new session with editor window
-            tmux new-session -s "$session_name" -c "$selected_dir" -n Editor "nvim; $SHELL" \; \
-                new-window -n Terminal \; \
-                select-window -t Editor
-        else
-            # In tmux - create new window in current session
-            tmux new-window -c "$selected_dir" -n "$(basename "$selected_dir")"
-        fi
-    fi
-}
-bind -x '"\C-g":"fzf_tmux_dirs"'  # Ctrl+g
-
-
 # opencode
-export PATH=/home/latent/.opencode/bin:$PATH
+export PATH=$HOME/.opencode/bin:$PATH
+export PATH=$HOME/dotfiles/bin:$PATH
 
 source ~/dotfiles/fzf-tab/fzf-bash-completion.sh
 bind -x '"\t": fzf_bash_completion'

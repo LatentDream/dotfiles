@@ -88,5 +88,7 @@ PROMPT='%F{#83a598}Latent%f %F{#ebdbb2}%~%f${vcs_info_msg_0_} %F{#98971a}%%%f '
 
 alias merl='EDITOR=nvim merlion --local --compact'
 
+export PATH="$PATH:$HOME/dotfiles/bin/"
+
 autoload -U compinit; compinit
 source ~/dotfiles/fzf-tab/fzf-tab.plugin.zsh
