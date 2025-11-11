@@ -111,3 +111,6 @@ bind -x '"\C-g":"fzf_tmux_dirs"'  # Ctrl+g
 
 # opencode
 export PATH=/home/latent/.opencode/bin:$PATH
+
+source ~/dotfiles/fzf-tab/fzf-bash-completion.sh
+bind -x '"\t": fzf_bash_completion'
