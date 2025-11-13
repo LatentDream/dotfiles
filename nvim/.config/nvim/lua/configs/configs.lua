@@ -1,6 +1,4 @@
 -- [[ Setting options ]]
--- See `:help vim.o`
--- NOTE: You can change these options as you wish!
 
 -- Set highlight on search
 vim.o.hlsearch = false
@@ -12,8 +10,6 @@ vim.wo.number = true
 vim.o.mouse = 'a'
 
 -- Sync clipboard between OS and Neovim.
---  Remove this option if you want your OS clipboard to remain independent.
---  See `:help 'clipboard'`
 vim.o.clipboard = 'unnamedplus'
 
 -- Enable break indent
@@ -36,10 +32,10 @@ vim.o.timeoutlen = 300
 -- Set completeopt to have a better completion experience
 vim.o.completeopt = 'menuone,noselect'
 
--- NOTE: You should make sure your terminal supports this
+-- Set terminal color
 vim.o.termguicolors = true
 
--- Line number
+-- Relative line number
 vim.opt.nu = true
 vim.opt.relativenumber = true
 
@@ -48,19 +44,15 @@ vim.o.tabstop = 4
 vim.o.shiftwidth = 4
 vim.o.expandtab = true
 
+-- Expect Nerd Font
+vim.g.have_nerd_font = true
 
--- Function to toggle colorcolumn
-function toggle_colorcolumn()
-  if vim.wo.colorcolumn == "" then
-    vim.wo.colorcolumn = "89"
-  else
-    vim.wo.colorcolumn = ""
-  end
-end
+-- Border
+vim.opt.winborder = "solid" -- https://neovim.io/doc/user/options.html#'winborder'
 
--- Set up a keymap to toggle colorcolumn
-vim.api.nvim_set_keymap('n', '<leader>tc', ':lua toggle_colorcolumn()<CR>',
-  { noremap = true, silent = true, desc = 'Toggle colorcolumn' })
+-- Split config
+vim.opt.splitright = true
+vim.opt.splitbelow = true
 
 -- [[ Highlight on yank ]]
 -- See `:help vim.highlight.on_yank()`
@@ -73,50 +65,17 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   pattern = '*',
 })
 
--- Resize window using <Ctrl> arrow keys
-vim.api.nvim_set_keymap('n', '<C-Up>', ':resize +2<CR>',
-  { noremap = true, silent = true, desc = 'Increase window height' })
-vim.api.nvim_set_keymap('n', '<C-Down>', ':resize -2<CR>',
-  { noremap = true, silent = true, desc = 'Decrease window height' })
-vim.api.nvim_set_keymap('n', '<C-Left>', ':vertical resize -2<CR>',
-  { noremap = true, silent = true, desc = 'Decrease window width' })
-vim.api.nvim_set_keymap('n', '<C-Right>', ':vertical resize +2<CR>',
-  { noremap = true, silent = true, desc = 'Increase window width' })
-
--- Move between windows
-vim.api.nvim_set_keymap('n', '<C-h>', ':TmuxNavigateLeft<CR>',
-  { noremap = true, silent = true, desc = 'Move to the left window' })
-vim.api.nvim_set_keymap('n', '<C-j>', ':TmuxNavigateDown<CR>',
-  { noremap = true, silent = true, desc = 'Move to the down window' })
-vim.api.nvim_set_keymap('n', '<C-k>', ':TmuxNavigateUp<CR>',
-  { noremap = true, silent = true, desc = 'Move to the up window' })
-vim.api.nvim_set_keymap('n', '<C-l>', ':TmuxNavigateRight<CR>',
-  { noremap = true, silent = true, desc = 'Move to the right window' })
-vim.api.nvim_set_keymap('n', '<C-\\>', ':TmuxNavigatePrevious<CR>',
-  { noremap = true, silent = true, desc = 'Move to the previous window' })
-
--- Custom insert
-function insertArrow()
-  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("i →", true, true, true), 'n', true)
-end
-
-vim.api.nvim_set_keymap('n', '<leader>ia', ':lua insertArrow()<CR>', { noremap = true, silent = true })
-
--- Some shortcuts
-vim.api.nvim_set_keymap('n', '<C-s>', ':w<CR>', { noremap = true, silent = true, desc = 'Save File' })
-vim.api.nvim_set_keymap('n', '<C-S>', ':aw<CR>', { noremap = true, silent = true, desc = 'Save all files' })
-
 -- Remap the :make -> justfile
 vim.o.makeprg = 'just'
 vim.api.nvim_create_user_command('Just', function(opts)
   vim.cmd('make ' .. opts.args)
 end, { nargs = '*' })
 
-vim.keymap.set('n', '<leader>jj', ':!just<CR>', { noremap = true, silent = true, desc = 'justfile' })
-vim.keymap.set('n', '<leader>jl', ':!just --list<CR>', { noremap = true, silent = true, desc = 'Justfile list' })
-vim.keymap.set('n', '<leader>jb', ':!just build<CR>', { noremap = true, silent = true, desc = 'justfile build' })
-vim.keymap.set('n', '<leader>m', ':make build<CR>', { noremap = true, silent = true, desc = 'make build' })
-vim.keymap.set('n', '<leader>jo', function()
+vim.keymap.set('n', '<leader>mj', ':!just<CR>', { noremap = true, silent = true, desc = '[M]ake [J]ust' })
+vim.keymap.set('n', '<leader>ml', ':make lint<CR>', { noremap = true, silent = true, desc = '[M]ake [L]int' })
+vim.keymap.set('n', '<leader>mt', ':make test<CR>', { noremap = true, silent = true, desc = '[M]ake [T]est' })
+vim.keymap.set('n', '<leader>mm', ':make build<CR>', { noremap = true, silent = true, desc = '[M]ake build' })
+vim.keymap.set('n', '<leader>mo', function()
   -- Try to find existing buffer first
   local buf_exists = vim.fn.bufexists('justfile') == 1
 
@@ -124,6 +83,6 @@ vim.keymap.set('n', '<leader>jo', function()
     vim.cmd('sbuffer justfile')
   else
     -- Open the file (will create buffer if file exists)
-    vim.cmd('split justfile')
+    vim.cmd('e justfile')
   end
-end, { noremap = true, silent = true, desc = 'open project justfile' })
+end, { noremap = true, silent = true, desc = '[Makefile] Open' })

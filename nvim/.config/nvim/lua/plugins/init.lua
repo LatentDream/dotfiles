@@ -38,7 +38,6 @@ return {
         },
     },
 
-
     {
         "ibhagwan/fzf-lua",
         dependencies = { "nvim-tree/nvim-web-devicons" },
@@ -55,7 +54,7 @@ return {
         vim.g.startuptime_tries = 10
       end,
     },
-    -- For the syntax
+
     {
       "NoahTheDuke/vim-just",
       lazy = true,
