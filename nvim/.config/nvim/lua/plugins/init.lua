@@ -5,9 +5,6 @@ return {
     -- "gc" to comment visual regions/lines
     { 'numToStr/Comment.nvim', opts = {} },
 
-    -- Detect tabstop and shiftwidth automatically
-    'tpope/vim-sleuth',
-
     {
         -- Highlight, edit, and navigate code
         'nvim-treesitter/nvim-treesitter',
@@ -55,8 +52,4 @@ return {
       end,
     },
 
-    {
-      "NoahTheDuke/vim-just",
-      lazy = true,
-    }
 }

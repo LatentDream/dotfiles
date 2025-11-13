@@ -1,0 +1,9 @@
+-- TODO: Add the following
+--
+-- TODO
+-- :TodoTelescope keywords=TODO,FIX
+-- :TodoQuickFix
+--
+-- Highlight LSP
+-- Toggle inline LSP problem
+-- LSP problem to quicklist
