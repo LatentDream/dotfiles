@@ -61,6 +61,19 @@ vim.keymap.set('n', '<leader>ie', function()
     })
     -- Move cursor to the indented line
     vim.api.nvim_win_set_cursor(0, { line + 2, 1 })
-end, 
+end,
     { noremap = true, silent = true, desc = '[I]nsert Go [E]error handling' })
 
+
+--- Mark
+-- Clear all marks in current buffer
+vim.keymap.set('n', '<leader>mc', ':delmarks a-z<CR>', {
+  desc = 'Clear all marks (buffer)',
+  silent = true
+})
+
+-- Clear ALL marks (including global A-Z)
+vim.keymap.set('n', '<leader>mC', ':delmarks!<CR>', {
+  desc = 'Clear ALL marks',
+  silent = true
+})

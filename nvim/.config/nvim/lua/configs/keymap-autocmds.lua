@@ -7,15 +7,20 @@ vim.api.nvim_create_autocmd("LspAttach", {
 
 		-- defaults:
 		-- https://neovim.io/doc/user/news-0.11.html#_defaults
-
 		map("gl", vim.diagnostic.open_float, "Open Diagnostic Float")
 		map("K", vim.lsp.buf.hover, "Hover Documentation")
 		map("gs", vim.lsp.buf.signature_help, "[G]oto [S]ignature documentation")
 		map("gD", vim.lsp.buf.declaration, "[G]oto [D]eclaration")
-		map("<leader>ca", vim.lsp.buf.code_action, "[C]ode [A]ction")
-		map("<leader>cr", vim.lsp.buf.rename, "[C]ode [R]ename all references")
 		map("<leader>f", vim.lsp.buf.format, "[F]ormat")
 		map("<leader>v", "<cmd>split | lua vim.lsp.buf.definition()<cr>", "Goto Definition in [V]ertical Split")
+
+		-- With a fuzzy finder
+		map('gD', require('fzf-lua').lsp_definitions, 'Goto Definition')
+		map('gR', require('fzf-lua').lsp_references, 'Goto References')
+		map('gI', require('fzf-lua').lsp_implementations, 'Goto Implementation')
+		map('<leader>ds', require('fzf-lua').lsp_document_symbols, 'Document Symbols')
+		map('<leader>ca', require('fzf-lua').lsp_code_actions, 'Code Action')
+		map('gt', require('fzf-lua').lsp_typedefs, 'Goto Type Definition')
 
 		local function client_supports_method(client, method, bufnr)
 			if vim.fn.has("nvim-0.11") == 1 then

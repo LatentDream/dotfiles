@@ -82,10 +82,11 @@ return {
         },
       },
       config = function()
-        vim.keymap.set({ "n" }, "<leader>go", "<cmd>DiffviewOpen<CR>", { silent = true, desc = "[D]iffview [O]pen" })
-        vim.keymap.set({ "n" }, "<leader>gc", "<cmd>DiffviewClose<CR>", { silent = true, desc = "[D]iffview [C]lose" })
-        vim.keymap.set({ "n" }, "<leader>gh", "<cmd>DiffviewFileHistory<CR>", { silent = true, desc = "[D]iffview [H]istory" })
-        vim.keymap.set({ "n" }, "<leader>gb", "<cmd>DiffviewFileHistory %<CR>", { silent = true, desc = "[D]iffview history of current [B]uffer" })
+        vim.keymap.set({ "n" }, "<leader>gg", "<cmd>DiffviewOpen<CR>", { silent = true, desc = "Diffview [G]it diff" })
+        vim.keymap.set({ "n" }, "<leader>gc", "<cmd>DiffviewClose<CR>", { silent = true, desc = "Diffview [C]lose" })
+        vim.keymap.set({ "n" }, "<leader>gh", "<cmd>DiffviewFileHistory<CR>", { silent = true, desc = "Diffview [H]istory" })
+        vim.keymap.set({ "n" }, "<leader>gb", "<cmd>DiffviewFileHistory %<CR>", { silent = true, desc = "Diffview history of current [B]uffer" })
+        -- other nice one is: DiffviewOpen HEAD~2 --cached
       end,
     },
 
