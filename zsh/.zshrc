@@ -1,4 +1,4 @@
-source ~/.config/.bashrc
+source ~/dotfiles/.bashrc
 
 # zi & fzf
 eval "$(zoxide init zsh)"
