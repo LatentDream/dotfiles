@@ -1,6 +1,7 @@
 vim.lsp.enable({
     "gopls",
-    "lua_ls"
+    "lua_ls",
+    "omnisharp"
 })
 
 vim.diagnostic.config({

@@ -10,7 +10,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		map("gl", vim.diagnostic.open_float, "Open Diagnostic Float")
 		map("K", vim.lsp.buf.hover, "Hover Documentation")
 		map("gs", vim.lsp.buf.signature_help, "[G]oto [S]ignature documentation")
-		map("gD", vim.lsp.buf.declaration, "[G]oto [D]eclaration")
+		map("gd", vim.lsp.buf.definition, "[G]oto [D]efinition")
 		map("<leader>f", vim.lsp.buf.format, "[F]ormat")
 		map("<leader>v", "<cmd>split | lua vim.lsp.buf.definition()<cr>", "Goto Definition in [V]ertical Split")
 

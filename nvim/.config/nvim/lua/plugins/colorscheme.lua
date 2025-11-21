@@ -16,7 +16,7 @@ return {
 				-- possible key: https://github.com/sainnhe/gruvbox-material/blob/master/autoload/gruvbox_material.vim
 				green = {'#a9b665', '100'},
 				bg_green = {'#a9b665', '100'},
-				aqua =  {'#F9BE33', '100'}
+				-- aqua =  {'#F9BE33', '100'}
 			}
 			vim.cmd.colorscheme("gruvbox-material")
 		end,

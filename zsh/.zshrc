@@ -92,3 +92,8 @@ export PATH="$PATH:$HOME/dotfiles/bin/"
 
 autoload -U compinit; compinit
 source ~/dotfiles/fzf-tab/fzf-tab.plugin.zsh
+
+if [[ -f ~/.zshrc.local ]]; then
+    source ~/.zshrc.local
+fi
+
