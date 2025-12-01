@@ -1,4 +1,5 @@
 vim.lsp.enable({
+    "erlang_ls",
     "gopls",
     "lua_ls",
     "omnisharp"
