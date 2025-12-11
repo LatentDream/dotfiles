@@ -68,9 +68,12 @@
     # Open a sh shell in git environment (useful for testing)
     sh = !sh
 
-    # Use difftastic as the difftool `brew install difftastic`
-    difft = difftool -t difftastic
-    
+    # Delta-formatted versions
+    ddiff = -c diff.external= diff
+    dshow = -c diff.external= show
+    dlog = -c diff.external= log -p
+    dstaged = -c diff.external= diff --staged
+
     # Status with custom options (short, branch, stash info, include submodules)
     status- = !git -c color.status=always status --short --branch --show-stash --ignore-submodules=none
 
@@ -113,12 +116,6 @@
 
 [init]
     defaultBranch = main
-
-[diff]
-    algorithm = histogram
-    colorMoved = plain
-    mnemonicPrefix = true
-    renames = true
 
 [push]
     default = simple
@@ -183,6 +180,14 @@
 
 [diff]
     colorMoved = default
+    algorithm = histogram
+    mnemonicprefix = true
+    renames = copies
+    renameLimit = 50000
+    external = difft
+
+[difftool "difftastic"]
+    cmd = difft "$LOCAL" "$REMOTE"
 
 [pretty]
     longlog = ___%n   \\%n%C(auto)%d%Creset %s%n%C(bold cyan)% ae %Cblue(%cr) %C(bold black)%h
