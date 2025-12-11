@@ -69,6 +69,8 @@ install-cargo-utils:
     cargo install lsd --locked
     cargo install git-delta
     cargo install just-lsp
+    cargo install atuin
+    cargo install --locked difftastic
 
 # Install Go
 install-go:

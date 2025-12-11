@@ -97,3 +97,4 @@ if [[ -f ~/.zshrc.local ]]; then
     source ~/.zshrc.local
 fi
 
+eval "$(atuin init zsh --disable-up-arrow)"
