@@ -17,8 +17,8 @@
   "buffer_font_size": 16,
   "theme": {
     "mode": "system",
-    "light": "Gruber Darker",
-    "dark": "One Dark"
+    "light": "Gruvbox Light",
+    "dark": "Gruvbox Dark"
   },
   "features": {
     // Which inline completion provider to use.
