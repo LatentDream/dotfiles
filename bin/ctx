@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+
+# Parse arguments
+SHOW_ALL=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -a|--all)
+            SHOW_ALL=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: ctx [OPTIONS]"
+            echo ""
+            echo "Display current context information (git, k8s, cloud providers, etc.)"
+            echo ""
+            echo "Options:"
+            echo "  -a, --all     Show all information including language versions"
+            echo "  -h, --help    Show this help message"
+            echo ""
+            echo "Default behavior shows: directory, git, kubernetes, gcloud, aws"
+            echo "With --all flag, also shows: python venv, node, go, dotnet versions and tmux"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use -h or --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
+echo -e "\n Current Context\n"
+
+# Current Directory
+echo -e " Directory: $(pwd)"
+
+# Git Information
+if git rev-parse --git-dir > /dev/null 2>&1; then
+    echo -e "\n Git:"
+    branch=$(git branch --show-current 2>/dev/null)
+    echo -e "   Branch: ${branch:-'(detached HEAD)'}"
+    
+    remote_url=$(git remote get-url origin 2>/dev/null)
+    if [[ -n "$remote_url" ]]; then
+        echo -e "   Remote: $remote_url"
+    fi
+    
+    # Git status summary
+    status=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+    if [[ "$status" -gt 0 ]]; then
+        echo -e "   Status: $status file(s) changed"
+    else
+        echo -e "   Status: clean"
+    fi
+    
+    # Last commit
+    last_commit=$(git log -1 --pretty=format:"%h - %s" 2>/dev/null)
+    if [[ -n "$last_commit" ]]; then
+        echo -e "   Last commit: $last_commit"
+    fi
+fi
+
+# Kubernetes Context
+if command -v kubectl &> /dev/null; then
+    k8s_context=$(kubectl config current-context 2>/dev/null)
+    if [[ -n "$k8s_context" ]]; then
+        echo -e "\n Kubernetes:"
+        echo -e "   Context: $k8s_context"
+        k8s_namespace=$(kubectl config view --minify --output 'jsonpath={..namespace}' 2>/dev/null)
+        echo -e "   Namespace: ${k8s_namespace:-default}"
+    fi
+fi
+
+# GCloud Context
+if command -v gcloud &> /dev/null; then
+    gcloud_config=$(gcloud config configurations list --filter="is_active:true" --format="value(name)" 2>/dev/null)
+    if [[ -n "$gcloud_config" ]]; then
+        echo -e "\n GCloud:"
+        echo -e "   Config: $gcloud_config"
+        gcloud_project=$(gcloud config get-value project 2>/dev/null)
+        if [[ -n "$gcloud_project" ]]; then
+            echo -e "   Project: $gcloud_project"
+        fi
+        gcloud_account=$(gcloud config get-value account 2>/dev/null)
+        if [[ -n "$gcloud_account" ]]; then
+            echo -e "   Account: $gcloud_account"
+        fi
+        gcloud_region=$(gcloud config get-value compute/region 2>/dev/null)
+        if [[ -n "$gcloud_region" ]]; then
+            echo -e "   Region: $gcloud_region"
+        fi
+    fi
+fi
+
+# AWS Profile
+if [[ -n "$AWS_PROFILE" ]]; then
+    echo -e "\n AWS Profile: $AWS_PROFILE"
+fi
+
+# Language versions (only with --all flag)
+if [[ "$SHOW_ALL" == true ]]; then
+    # Python Virtual Environment
+    if [[ -n "$VIRTUAL_ENV" ]]; then
+        echo -e "\n Python venv: $(basename $VIRTUAL_ENV)"
+    fi
+    
+    # Node Version
+    if command -v node &> /dev/null; then
+        echo -e "\n Node: $(node --version)"
+    fi
+    
+    # Go Version
+    if command -v go &> /dev/null; then
+        echo -e "\n Go: $(go version | awk '{print $3}')"
+    fi
+    
+    # .NET Version
+    if command -v dotnet &> /dev/null; then
+        dotnet_version=$(dotnet --version 2>/dev/null)
+        if [[ -n "$dotnet_version" ]]; then
+            echo -e "\n .NET: $dotnet_version"
+        fi
+    fi
+
+    # Tmux Session
+    if [[ -n "$TMUX" ]]; then
+        tmux_session=$(tmux display-message -p '#S')
+        echo -e "\n Tmux Session: $tmux_session"
+    fi
+
+fi
+
+echo ""
