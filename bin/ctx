@@ -18,7 +18,7 @@ while [[ $# -gt 0 ]]; do
             echo "  -a, --all     Show all information including language versions"
             echo "  -h, --help    Show this help message"
             echo ""
-            echo "Default behavior shows: directory, git, kubernetes, gcloud, aws"
+            echo "Default behavior shows: git, kubernetes, gcloud, aws"
             echo "With --all flag, also shows: python venv, node, go, dotnet versions and tmux"
             exit 0
             ;;
@@ -29,11 +29,6 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
-
-echo -e "\n Current Context\n"
-
-# Current Directory
-echo -e " Directory: $(pwd)"
 
 # Git Information
 if git rev-parse --git-dir > /dev/null 2>&1; then
