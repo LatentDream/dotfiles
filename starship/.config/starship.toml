@@ -2,10 +2,11 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 
 # Configure the format
-format = """
-$directory\
+format = """$directory\
 $git_status\
 $character"""
+
+add_newline = false
 
 # Directory configuration - Gruvbox blue
 [directory]

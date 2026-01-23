@@ -73,18 +73,20 @@ bindkey '^P' clear-screen
 
 # Command Prompt
 # Load version control information
-autoload -Uz vcs_info
-precmd() { vcs_info }
+# autoload -Uz vcs_info
+# precmd() { vcs_info }
+#
+# # Format the vcs_info_msg_0_ variable
+# zstyle ':vcs_info:git:*' check-for-changes true
+# zstyle ':vcs_info:git:*' stagedstr "%F{#b8bb26} ●%f"
+# zstyle ':vcs_info:git:*' unstagedstr "%F{#fb4934} ●%f"
+# zstyle ':vcs_info:git:*' formats " %F{#d79921}(%b)%f%c%u"
+# zstyle ':vcs_info:git:*' actionformats " %F{#d79921}(%b|%a)%f%c%u"
+#
+# setopt PROMPT_SUBST
+# PROMPT='%F{#83a598}Latent%f %F{#ebdbb2}%~%f${vcs_info_msg_0_} %F{#98971a}%%%f '
 
-# Format the vcs_info_msg_0_ variable
-zstyle ':vcs_info:git:*' check-for-changes true
-zstyle ':vcs_info:git:*' stagedstr "%F{#b8bb26} ●%f"
-zstyle ':vcs_info:git:*' unstagedstr "%F{#fb4934} ●%f"
-zstyle ':vcs_info:git:*' formats " %F{#d79921}(%b)%f%c%u"
-zstyle ':vcs_info:git:*' actionformats " %F{#d79921}(%b|%a)%f%c%u"
-
-setopt PROMPT_SUBST
-PROMPT='%F{#83a598}Latent%f %F{#ebdbb2}%~%f${vcs_info_msg_0_} %F{#98971a}%%%f '
+eval "$(starship init zsh)"
 
 alias merl='EDITOR=nvim merlion --local --compact'
 
