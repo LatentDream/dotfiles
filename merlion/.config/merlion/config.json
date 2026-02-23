@@ -1,1 +1,1 @@
-{"theme":"terminal","infoHidden":true,"infoBottom":true,"compactViewOnly":false}
+{"theme":"gruvbox","infoHidden":true,"infoBottom":true,"compactView":true,"defaultToCloud":false,"vaults":[{"provider":"SQLite","path":"Not Used - Use MERLION_DB_PATH env var to override","name":"Global"}]}
