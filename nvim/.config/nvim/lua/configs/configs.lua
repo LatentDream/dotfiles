@@ -86,3 +86,16 @@ vim.keymap.set('n', '<leader>mo', function()
     vim.cmd('e justfile')
   end
 end, { noremap = true, silent = true, desc = '[Makefile] Open' })
+
+-- Add C# format while keeping existing ones
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "cs",
+  callback = function()
+    vim.opt_local.errorformat = {
+      [[%f(%l\,%c): error %m]],
+      [[%f(%l\,%c): warning %m]],
+      [[%f(%l\,%c): %m]],
+    }
+  end,
+  group = vim.api.nvim_create_augroup("CSharpErrorFormat", { clear = true }),
+})

@@ -1,0 +1,735 @@
+#!/usr/bin/env bash
+
+# wt - Git worktree manager
+# Save as 'wt', make executable (chmod +x wt), place in PATH
+
+# Enable debug output with: export WT_DEBUG=1
+wt_debug() {
+  if [[ "${WT_DEBUG:-0}" == "1" ]]; then
+    echo "[DEBUG] $*" >&2
+  fi
+}
+
+# Helper function to get absolute path (works in both bash and zsh)
+get_absolute_path() {
+  local path="$1"
+  
+  wt_debug "get_absolute_path called with: $path"
+  
+  if [[ ! -e "$path" ]]; then
+    wt_debug "Path does not exist, returning as-is"
+    echo "$path"
+    return
+  fi
+  
+  if command -v realpath >/dev/null 2>&1; then
+    local result
+    result=$(realpath "$path" 2>/dev/null)
+    wt_debug "realpath result: $result"
+    echo "$result"
+  else
+    wt_debug "realpath not found, using fallback"
+    if [[ -d "$path" ]]; then
+      local result
+      result=$(cd "$path" && pwd -P)
+      wt_debug "fallback result: $result"
+      echo "$result"
+    else
+      local dir=$(dirname "$path")
+      local file=$(basename "$path")
+      local result
+      result=$(cd "$dir" && echo "$(pwd -P)/$file")
+      wt_debug "fallback file result: $result"
+      echo "$result"
+    fi
+  fi
+}
+
+wt-init() {
+  local shell="${1:-bash}"
+  
+  wt_debug "wt-init called with shell: $shell"
+  
+  case "$shell" in
+    bash|zsh)
+      cat <<'EOF'
+# wt - Git worktree manager shell integration
+
+wt() {
+  local wt_cmd="wt"
+  
+  # Check if wt executable exists
+  if ! command -v "$wt_cmd" >/dev/null 2>&1; then
+    echo "wt: command not found" >&2
+    return 1
+  fi
+  
+  # For list and help, just run directly
+  if [[ "$1" == "list" ]] || [[ "$1" == "help" ]] || [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
+    command wt "$@"
+    return $?
+  fi
+  
+  # For init command, run directly (prevents recursion)
+  if [[ "$1" == "init" ]]; then
+    command wt "$@"
+    return $?
+  fi
+  
+  # For cd-enabled commands, capture output and check for directory change
+  local result
+  result="$(command wt "$@")"
+  local exit_code=$?
+  
+  if [[ $exit_code -eq 0 ]] && [[ "$result" =~ ^WT_CD: ]]; then
+    local target_dir="${result#WT_CD:}"
+    cd "$target_dir" || return 1
+  elif [[ -n "$result" ]]; then
+    echo "$result"
+  fi
+  
+  return $exit_code
+}
+EOF
+      return 0
+      ;;
+    *)
+      echo "wt init: unsupported shell: $shell" >&2
+      echo "Supported shells: bash, zsh" >&2
+      return 1
+      ;;
+  esac
+}
+
+wt-help() {
+  cat <<'EOF'
+wt - Git worktree manager
+
+USAGE:
+  wt                              Interactive worktree selector (jump to a worktree)
+  wt new <branch> [ref] [options] Create or switch to a worktree
+  wt list                         List all worktrees with parent branch info
+  wt clean [options]              Remove current worktree and return to main
+  wt init <shell>                 Output shell integration code
+  wt help                         Show this help message
+
+INSTALLATION:
+
+  1. Make wt executable and place in PATH:
+     chmod +x wt
+     sudo mv wt /usr/local/bin/
+
+  2. Add to your ~/.bashrc or ~/.zshrc:
+     eval "$(wt init bash)"    # for bash
+     eval "$(wt init zsh)"     # for zsh
+
+  3. Reload your shell:
+     source ~/.bashrc   # or source ~/.zshrc
+
+DEBUG:
+  Enable debug output with: export WT_DEBUG=1
+
+COMMANDS:
+  (no args)
+    Opens an interactive selector (using fzf if available) to choose and
+    jump to an existing worktree.
+
+  new <branch> [ref] [options]
+    Create a new worktree for <branch>, or switch to it if it already exists.
+    
+    Arguments:
+      <branch>    Branch name for the worktree
+      [ref]       Optional: base ref to create branch from (commit/branch/tag)
+    
+    Options:
+      --bootstrap   Run .wt-enter hook after creating/entering worktree
+      --install     Pass --install flag to .wt-enter hook
+    
+    The worktree will be created in a sibling directory named:
+      <repo>--<branch> (with / replaced by --)
+    
+    Example:
+      wt new feature/foo              # Create worktree from current branch
+      wt new hotfix main              # Create worktree from main branch
+      wt new experiment --bootstrap   # Create and run bootstrap hook
+
+  list
+    Display all worktrees with branch names, parent references, and paths.
+    Shows a * marker next to the current worktree.
+
+  clean [options]
+    Remove the current worktree and return to the main worktree.
+    Refuses to run from the main worktree itself.
+    
+    Options:
+      --force           Remove even if there are uncommitted changes
+      --delete-branch   Also delete the branch after removing worktree
+    
+    Example:
+      wt clean                    # Remove current worktree (safe)
+      wt clean --force            # Force remove with uncommitted changes
+      wt clean --delete-branch    # Remove worktree and delete branch
+
+  init <shell>
+    Output shell integration code for the specified shell.
+    Supported shells: bash, zsh
+    
+    Example:
+      wt init bash    # Output bash integration
+      wt init zsh     # Output zsh integration
+
+  help
+    Display this help message.
+
+BOOTSTRAP HOOK:
+  If you create a .wt-enter executable in your repository root, it will be
+  invoked when using 'wt new --bootstrap'. This can be used to run setup
+  tasks like installing dependencies, building, etc.
+
+REQUIREMENTS:
+  - Git with worktree support
+  - Bash 4.0+ or Zsh
+  - fzf (optional, for interactive selector)
+
+EXAMPLES:
+  # Interactive workflow
+  wt                              # Select and jump to a worktree
+
+  # Create new feature branch worktree
+  wt new feature/new-widget
+
+  # Create worktree from specific commit
+  wt new hotfix/bug-123 abc1234
+
+  # Create worktree and run setup
+  wt new feature/experiment --bootstrap
+
+  # List all worktrees
+  wt list
+
+  # Clean up current worktree
+  wt clean
+
+  # Force clean and delete branch
+  wt clean --force --delete-branch
+
+EOF
+  return 0
+}
+
+wt-go() {
+  wt_debug "wt-go: Starting"
+  
+  local repo_root
+  repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+    echo "wt: not inside a git repository" >&2
+    return 1
+  }
+  wt_debug "wt-go: repo_root = $repo_root"
+  
+  repo_root="$(get_absolute_path "$repo_root")"
+  wt_debug "wt-go: absolute repo_root = $repo_root"
+
+  local current_root
+  current_root="$repo_root"
+
+  local wt_path=""
+  local wt_branch=""
+  local wt_detached=0
+  local line
+
+  local -a rows
+  local -a labels
+  local -a paths
+
+  append_entry() {
+    wt_debug "append_entry: wt_path = $wt_path, wt_branch = $wt_branch, wt_detached = $wt_detached"
+    
+    if [[ -z "$wt_path" ]]; then
+      wt_debug "append_entry: skipping empty path"
+      return
+    fi
+
+    local marker branch_label label wt_path_abs
+    marker=" "
+    wt_path_abs="$(get_absolute_path "$wt_path")"
+    if [[ "$wt_path_abs" == "$current_root" ]]; then
+      marker="*"
+    fi
+
+    if (( wt_detached )); then
+      branch_label="(detached)"
+    elif [[ -n "$wt_branch" ]]; then
+      branch_label="$wt_branch"
+    else
+      branch_label="(unknown)"
+    fi
+
+    label="$marker $branch_label -> $wt_path"
+    rows+=("$wt_path	$label")
+    labels+=("$label")
+    paths+=("$wt_path")
+    
+    wt_debug "append_entry: added entry, total entries = ${#paths[@]}"
+  }
+
+  wt_debug "wt-go: Reading worktree list"
+  while IFS= read -r line; do
+    wt_debug "wt-go: Processing line: $line"
+    case "$line" in
+      worktree\ *)
+        append_entry
+        wt_path="${line#worktree }"
+        wt_branch=""
+        wt_detached=0
+        ;;
+      branch\ refs/heads/*)
+        wt_branch="${line#branch refs/heads/}"
+        ;;
+      detached)
+        wt_detached=1
+        ;;
+    esac
+  done < <(git -C "$repo_root" worktree list --porcelain)
+
+  append_entry
+  wt_debug "wt-go: Total worktrees found: ${#paths[@]}"
+
+  if (( ${#paths[@]} == 0 )); then
+    echo "wt: no worktrees found" >&2
+    return 1
+  fi
+
+  local target_path=""
+
+  if command -v fzf >/dev/null 2>&1; then
+    wt_debug "wt-go: Using fzf"
+    local selected
+    selected="$(printf "%s\n" "${rows[@]}" | fzf --delimiter=$'\t' --with-nth=2.. --prompt='worktree> ' --height=40% --reverse)" || return 1
+    target_path="${selected%%$'\t'*}"
+  else
+    wt_debug "wt-go: Using numbered menu"
+    echo "wt: fzf not found, using numbered menu" >&2
+    local i
+    for (( i = 1; i <= ${#labels[@]}; i++ )); do
+      printf "%d) %s\n" "$i" "${labels[$i]}" >&2
+    done
+    echo -n "Select worktree number: " >&2
+    local choice
+    read -r choice
+    if [[ ! "$choice" =~ ^[0-9]+$ ]]; then
+      echo "wt: invalid selection" >&2
+      return 1
+    fi
+    if (( choice < 1 || choice > ${#paths[@]} )); then
+      echo "wt: invalid selection" >&2
+      return 1
+    fi
+    target_path="${paths[$choice]}"
+  fi
+
+  if [[ -z "$target_path" ]]; then
+    wt_debug "wt-go: No target path selected"
+    return 1
+  fi
+
+  wt_debug "wt-go: Selected target: $target_path"
+  echo "WT_CD:$target_path"
+  return 0
+}
+
+wt-new() {
+  wt_debug "wt-new: Starting with args: $*"
+  
+  local branch=""
+  local ref=""
+  local bootstrap=0
+  local install=0
+  local arg
+  local base_ref=""
+
+  for arg in "$@"; do
+    case "$arg" in
+      --bootstrap)
+        bootstrap=1
+        ;;
+      --install)
+        install=1
+        ;;
+      *)
+        if [[ -z "$branch" ]]; then
+          branch="$arg"
+        elif [[ -z "$ref" ]]; then
+          ref="$arg"
+        else
+          echo "wt new: too many positional arguments" >&2
+          echo "usage: wt new <branch> [ref] [--bootstrap] [--install]" >&2
+          return 1
+        fi
+        ;;
+    esac
+  done
+
+  wt_debug "wt-new: branch=$branch, ref=$ref, bootstrap=$bootstrap, install=$install"
+
+  if [[ -z "$branch" ]]; then
+    echo "usage: wt new <branch> [ref] [--bootstrap] [--install]" >&2
+    return 1
+  fi
+
+  local repo_root
+  repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+    echo "wt new: not inside a git repository" >&2
+    return 1
+  }
+  repo_root="$(get_absolute_path "$repo_root")"
+  wt_debug "wt-new: repo_root=$repo_root"
+
+  local common_dir main_root
+  common_dir="$(git -C "$repo_root" rev-parse --git-common-dir 2>/dev/null)" || return 1
+  common_dir="$(get_absolute_path "$common_dir")"
+  main_root="$(dirname "$common_dir")"
+  wt_debug "wt-new: common_dir=$common_dir, main_root=$main_root"
+
+  local existing_path=""
+  local wt_path=""
+  local wt_branch=""
+  local line
+
+  while IFS= read -r line; do
+    case "$line" in
+      worktree\ *)
+        wt_path="${line#worktree }"
+        ;;
+      branch\ refs/heads/*)
+        wt_branch="${line#branch refs/heads/}"
+        if [[ "$wt_branch" == "$branch" ]]; then
+          existing_path="$wt_path"
+          wt_debug "wt-new: Found existing worktree at $existing_path"
+          break
+        fi
+        ;;
+    esac
+  done < <(git -C "$repo_root" worktree list --porcelain)
+
+  local target_path=""
+  
+  if [[ -n "$existing_path" ]]; then
+    target_path="$existing_path"
+    wt_debug "wt-new: Using existing worktree"
+  else
+    wt_debug "wt-new: Creating new worktree"
+    local repo_name parent_dir safe_branch
+    repo_name="$(basename "$main_root")"
+    parent_dir="$(dirname "$main_root")"
+    safe_branch="${branch//\//--}"
+    target_path="${parent_dir}/${repo_name}--${safe_branch}"
+    wt_debug "wt-new: target_path=$target_path"
+
+    if [[ -e "$target_path" ]]; then
+      echo "wt new: target path already exists: $target_path" >&2
+      return 1
+    fi
+
+    if [[ -n "$ref" ]]; then
+      wt_debug "wt-new: Creating worktree from ref: $ref"
+      git -C "$repo_root" worktree add -b "$branch" "$target_path" "$ref" || return 1
+      base_ref="$ref"
+    else
+      if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$branch"; then
+        wt_debug "wt-new: Branch exists, checking it out"
+        git -C "$repo_root" worktree add "$target_path" "$branch" || return 1
+      else
+        wt_debug "wt-new: Branch doesn't exist, creating it"
+        local current_branch
+        current_branch="$(git -C "$repo_root" branch --show-current 2>/dev/null)"
+        if [[ -n "$current_branch" ]]; then
+          base_ref="$current_branch"
+        else
+          base_ref="$(git -C "$repo_root" rev-parse --short HEAD 2>/dev/null)"
+        fi
+        wt_debug "wt-new: base_ref=$base_ref"
+        git -C "$repo_root" worktree add -b "$branch" "$target_path" || return 1
+      fi
+    fi
+
+    if [[ -n "$base_ref" ]]; then
+      wt_debug "wt-new: Storing base ref: $base_ref"
+      git -C "$repo_root" config "branch.$branch.wtbase" "$base_ref"
+    fi
+  fi
+
+  if (( bootstrap )); then
+    wt_debug "wt-new: Running bootstrap"
+    local hook_path
+    local hook_common_dir hook_main_root
+    hook_common_dir="$(git -C "$target_path" rev-parse --git-common-dir 2>/dev/null)"
+    hook_common_dir="$(get_absolute_path "$hook_common_dir")"
+    hook_main_root="$(dirname "$hook_common_dir")"
+    hook_path="$hook_main_root/.wt-enter"
+
+    if [[ ! -x "$hook_path" ]]; then
+      hook_path="$target_path/.wt-enter"
+    fi
+
+    wt_debug "wt-new: Looking for hook at: $hook_path"
+    if [[ -x "$hook_path" ]]; then
+      wt_debug "wt-new: Executing hook"
+      (
+        cd "$target_path" || exit 1
+        if (( install )); then
+          "$hook_path" --install
+        else
+          "$hook_path"
+        fi
+      )
+    else
+      echo "wt new: bootstrap requested but no executable .wt-enter found" >&2
+    fi
+  fi
+
+  wt_debug "wt-new: Success, outputting WT_CD"
+  echo "WT_CD:$target_path"
+  return 0
+}
+
+wt-clean() {
+  wt_debug "wt-clean: Starting with args: $*"
+  
+  local force=0
+  local delete_branch=0
+  local arg
+
+  for arg in "$@"; do
+    case "$arg" in
+      --force)
+        force=1
+        ;;
+      --delete-branch)
+        delete_branch=1
+        ;;
+      *)
+        echo "usage: wt clean [--force] [--delete-branch]" >&2
+        return 1
+        ;;
+    esac
+  done
+
+  wt_debug "wt-clean: force=$force, delete_branch=$delete_branch"
+
+  local current_root common_dir main_root branch
+  current_root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+    echo "wt clean: not inside a git repository" >&2
+    return 1
+  }
+  current_root="$(get_absolute_path "$current_root")"
+  wt_debug "wt-clean: current_root=$current_root"
+
+  common_dir="$(git rev-parse --git-common-dir 2>/dev/null)" || return 1
+  common_dir="$(get_absolute_path "$common_dir")"
+  main_root="$(dirname "$common_dir")"
+  wt_debug "wt-clean: common_dir=$common_dir, main_root=$main_root"
+
+  if [[ "$current_root" == "$main_root" ]]; then
+    echo "wt clean: you are in the main worktree; refusing" >&2
+    return 1
+  fi
+
+  if (( ! force )) && [[ -n "$(git -C "$current_root" status --porcelain)" ]]; then
+    echo "wt clean: worktree has uncommitted changes (use --force)" >&2
+    return 1
+  fi
+
+  branch="$(git -C "$current_root" branch --show-current 2>/dev/null)"
+  wt_debug "wt-clean: branch=$branch"
+
+  wt_debug "wt-clean: Removing worktree"
+  if (( force )); then
+    git -C "$main_root" worktree remove --force "$current_root" || return 1
+  else
+    git -C "$main_root" worktree remove "$current_root" || return 1
+  fi
+
+  wt_debug "wt-clean: Pruning worktrees"
+  git -C "$main_root" worktree prune
+
+  if (( delete_branch )) && [[ -n "$branch" ]]; then
+    wt_debug "wt-clean: Deleting branch $branch"
+    git -C "$main_root" branch -D "$branch"
+  fi
+
+  wt_debug "wt-clean: Success, outputting WT_CD"
+  echo "WT_CD:$main_root"
+  return 0
+}
+
+wt-list() {
+  wt_debug "wt-list: Starting"
+  
+  local repo_root
+  repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+    echo "wt list: not inside a git repository" >&2
+    wt_debug "wt-list: Failed - not in git repo"
+    return 1
+  }
+  wt_debug "wt-list: repo_root = $repo_root"
+  
+  repo_root="$(get_absolute_path "$repo_root")"
+  wt_debug "wt-list: absolute repo_root = $repo_root"
+
+  local current_root
+  current_root="$repo_root"
+  wt_debug "wt-list: current_root = $current_root"
+
+  local wt_path=""
+  local wt_branch=""
+  local wt_detached=0
+  local line
+  local entry_count=0
+
+  print_entry() {
+    wt_debug "print_entry: wt_path = $wt_path, wt_branch = $wt_branch, wt_detached = $wt_detached"
+    
+    if [[ -z "$wt_path" ]]; then
+      wt_debug "print_entry: skipping empty path"
+      return 0
+    fi
+
+    entry_count=$((entry_count + 1))
+    wt_debug "print_entry: Processing entry #$entry_count"
+
+    local marker branch_label parent_label wt_path_abs
+    marker=" "
+    wt_path_abs="$wt_path"
+    if [[ "$wt_path_abs" == "$current_root" ]]; then
+      marker="*"
+    fi
+    wt_debug "print_entry: marker = '$marker'"
+
+    if (( wt_detached )); then
+      branch_label="(detached)"
+    elif [[ -n "$wt_branch" ]]; then
+      branch_label="$wt_branch"
+    else
+      branch_label="(unknown)"
+    fi
+    wt_debug "print_entry: branch_label = $branch_label"
+
+    parent_label=""
+    if [[ -n "$wt_branch" ]]; then
+      wt_debug "print_entry: Looking up parent for branch: $wt_branch"
+      parent_label="$(git -C "$repo_root" config --get "branch.$wt_branch.wtbase" 2>/dev/null)"
+      wt_debug "print_entry: wtbase = '$parent_label'"
+      if [[ -z "$parent_label" ]]; then
+        parent_label="$(git -C "$repo_root" for-each-ref --format='%(upstream:short)' "refs/heads/$wt_branch" 2>/dev/null)"
+        wt_debug "print_entry: upstream = '$parent_label'"
+      fi
+    fi
+
+    if [[ -n "$parent_label" ]]; then
+      wt_debug "print_entry: Printing with parent: $parent_label"
+      printf "%s %s (from %s) -> %s\n" "$marker" "$branch_label" "$parent_label" "$wt_path"
+    else
+      wt_debug "print_entry: Printing without parent"
+      printf "%s %s -> %s\n" "$marker" "$branch_label" "$wt_path"
+    fi
+  }
+
+  wt_debug "wt-list: Starting to read worktree list"
+  while IFS= read -r line; do
+    wt_debug "wt-list: Read line: $line"
+    case "$line" in
+      worktree\ *)
+        print_entry
+        wt_path="${line#worktree }"
+        wt_branch=""
+        wt_detached=0
+        wt_debug "wt-list: Set wt_path = $wt_path"
+        ;;
+      branch\ refs/heads/*)
+        wt_branch="${line#branch refs/heads/}"
+        wt_debug "wt-list: Set wt_branch = $wt_branch"
+        ;;
+      detached)
+        wt_detached=1
+        wt_debug "wt-list: Set wt_detached = 1"
+        ;;
+    esac
+  done < <(git -C "$repo_root" worktree list --porcelain)
+
+  wt_debug "wt-list: Processing final entry"
+  print_entry
+  
+  wt_debug "wt-list: Completed successfully, processed $entry_count entries"
+  return 0
+}
+
+# Main command dispatcher
+main() {
+  wt_debug "main: Called with args: $*"
+  
+  local subcommand="${1:-}"
+  wt_debug "main: subcommand = '$subcommand'"
+
+  case "$subcommand" in
+    "")
+      wt_debug "main: Executing wt-go"
+      wt-go
+      local rc=$?
+      wt_debug "main: wt-go returned $rc"
+      return $rc
+      ;;
+    new)
+      shift
+      wt_debug "main: Executing wt-new"
+      wt-new "$@"
+      local rc=$?
+      wt_debug "main: wt-new returned $rc"
+      return $rc
+      ;;
+    list)
+      shift
+      wt_debug "main: Executing wt-list"
+      wt-list "$@"
+      local rc=$?
+      wt_debug "main: wt-list returned $rc"
+      return $rc
+      ;;
+    clean)
+      shift
+      wt_debug "main: Executing wt-clean"
+      wt-clean "$@"
+      local rc=$?
+      wt_debug "main: wt-clean returned $rc"
+      return $rc
+      ;;
+    init)
+      shift
+      wt_debug "main: Executing wt-init"
+      wt-init "$@"
+      local rc=$?
+      wt_debug "main: wt-init returned $rc"
+      return $rc
+      ;;
+    help|--help|-h)
+      wt_debug "main: Executing wt-help"
+      wt-help
+      local rc=$?
+      wt_debug "main: wt-help returned $rc"
+      return $rc
+      ;;
+    *)
+      echo "wt: unknown command: $subcommand" >&2
+      echo "Run 'wt help' for usage information." >&2
+      wt_debug "main: Unknown command, returning 1"
+      return 1
+      ;;
+  esac
+}
+
+# Run main function
+wt_debug "Script starting"
+main "$@"
+exit_code=$?
+wt_debug "Script exiting with code $exit_code"
+exit $exit_code

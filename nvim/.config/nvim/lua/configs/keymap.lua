@@ -77,3 +77,10 @@ vim.keymap.set('n', '<leader>mC', ':delmarks!<CR>', {
   desc = 'Clear ALL marks',
   silent = true
 })
+
+-- Reload All files
+vim.keymap.set('n', '<leader>rr', ':bufdo e!<CR>', {
+    desc = 'Reload all file',
+    silent = true
+})
+

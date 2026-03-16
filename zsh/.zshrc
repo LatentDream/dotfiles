@@ -3,6 +3,7 @@ source ~/dotfiles/.bashrc
 # zi & fzf
 eval "$(zoxide init zsh)"
 eval "$(fzf --zsh)"
+eval "$(wt init zsh)"
 
 # Makefile completion
 zstyle ':completion:*:*:make:*' tag-order 'targets'
