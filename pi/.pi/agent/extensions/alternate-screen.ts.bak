@@ -1,0 +1,19 @@
+import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+
+/**
+ * Launches pi in the terminal's alternate screen buffer,
+ * like lazygit, vim, htop, etc.
+ * The alternate screen hides your shell history while pi runs
+ * and restores it cleanly on exit.
+ */
+export default function (pi: ExtensionAPI) {
+  pi.on("session_start", async (event, _ctx) => {
+    // Only enter alternate screen on the very first startup, not on /new, /resume, /fork, /reload
+    if (event.reason !== "startup") return;
+    process.stdout.write("\x1b[?1049h"); // Enter alternate screen
+  });
+
+  pi.on("session_shutdown", async (_event, _ctx) => {
+    process.stdout.write("\x1b[?1049l"); // Exit alternate screen
+  });
+}

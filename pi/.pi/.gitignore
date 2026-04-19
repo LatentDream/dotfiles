@@ -1,0 +1,3 @@
+agent/sessions/*
+agent/models.json
+agent/auth.json
