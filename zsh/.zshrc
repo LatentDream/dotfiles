@@ -101,3 +101,9 @@ if [[ -f ~/.zshrc.local ]]; then
 fi
 
 eval "$(atuin init zsh --disable-up-arrow)"
+export EDITOR=/Users/guillaume.thibault/tools/nvim-macos-arm64/bin/nvim 
+
+# Added by GitButler installer
+export PATH="/Users/guillaume.thibault/.local/bin:$PATH"
+eval "$(but completions zsh)"
+
