@@ -7,7 +7,7 @@ alias va='source ./venv/bin/activate'
 alias tcn='mv --force -t ~/.local/share/Trash '
 # Git
 alias gw='git worktree list'
-alias st='git status-'
+alias st='git status'
 alias startgit='cd `git rev-parse --show-toplevel` && git checkout main && git pull'
 alias cg='cd `git rev-parse --show-toplevel`'
 alias adog='git log --all --decorate --oneline --graph'
