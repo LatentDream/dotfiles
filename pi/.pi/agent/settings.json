@@ -1,8 +1,0 @@
-{
-  "lastChangelogVersion": "0.67.68",
-  "quietStartup": true,
-  "defaultProvider": "u-ai",
-  "defaultModel": "claude-sonnet-4-6",
-  "editorPaddingX": 0,
-  "showHardwareCursor": true
-}

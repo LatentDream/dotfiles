@@ -1,1 +1,1 @@
-{"theme":"gruvbox","infoHidden":true,"infoBottom":true,"compactView":true,"defaultToCloud":false,"vaults":[{"provider":"SQLite","path":"Not Used - Use MERLION_DB_PATH env var to override","name":"Global"}]}
+{"theme":"gruvbox","infoHidden":true,"infoBottom":true,"compactView":true,"defaultToCloud":false,"vaults":[{"provider":"Files","path":"/Users/guillaume.thibault/notes","name":"/Users/guillaume.thibault/notes"}]}
