@@ -29,7 +29,11 @@ return {
           { icon = { "󰊄", hl = "DashboardIcon" }, key = "g", desc = " Find Text", action = ":lua Snacks.dashboard.pick('live_grep')" },
           { icon = { "󱋢", hl = "DashboardIcon" }, key = "r", desc = " Recent Files", action = ":lua Snacks.dashboard.pick('oldfiles')" },
           { icon = { "󰛢", hl = "DashboardIcon" }, key = "h", desc = " Harpoon", action = ":lua require('harpoon.ui').toggle_quick_menu()" },
-          { icon = { "󰊢", hl = "DashboardIcon" }, key = "b", desc = " Repo", padding = 1, action = function() Snacks.gitbrowse() end, },
+          { icon = { "󰊢", hl = "DashboardIcon" }, key = "b", desc = " Diff", padding = 1, action = function()
+            vim.fn.system("git rev-parse --verify main")
+            local branch = vim.v.shell_error == 0 and "main" or "master"
+            vim.cmd("DiffviewOpen " .. branch)
+          end },
         },
         header = {
           "           Welcome back Latent",

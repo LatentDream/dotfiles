@@ -1,4 +1,5 @@
 vim.lsp.enable({
+    "bashls",
     "csharp_ls",
     "erlang_ls",
     "gopls",
