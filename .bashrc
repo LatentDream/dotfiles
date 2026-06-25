@@ -30,7 +30,10 @@ eval "$(zoxide init bash)"
 alias k='kubectl'
 alias kd='kubectl describe'
 alias kg='kubectl get'
-
+# justfile
+alias jsut=just
+alias oc=opencode
+# cd
 alias ..='cd ..'
 alias 2..='cd ../..'
 alias 3..='cd ../../..'
