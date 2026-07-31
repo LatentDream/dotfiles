@@ -100,9 +100,8 @@ return {
           { icon = { "󰈞", hl = "DashboardIcon" }, key = "f", desc = " Find File", action = ":lua Snacks.dashboard.pick('files')" },
           { icon = { "󰊄", hl = "DashboardIcon" }, key = "g", desc = " Find Text", action = ":lua Snacks.dashboard.pick('live_grep')" },
           { icon = { "󱋢", hl = "DashboardIcon" }, key = "r", desc = " Recent Files", action = ":lua Snacks.dashboard.pick('oldfiles')" },
-          { icon = { "󰛢", hl = "DashboardIcon" }, key = "h", desc = " Harpoon", action = ":lua require('harpoon.ui').toggle_quick_menu()" },
           { icon = { "󰋖", hl = "DashboardIcon" }, key = "?", desc = " Help", action = ":help" },
-          { icon = { "󰓙", hl = "DashboardIcon" }, key = "c", desc = " Checkhealth", action = ":checkhealth" },
+          { icon = { "󰓙", hl = "DashboardIcon" }, key = "h", desc = " Checkhealth", action = ":checkhealth" },
           { icon = { "󰊢", hl = "DashboardIcon" }, key = "b", desc = " Diff", action = function()
             vim.fn.system("git rev-parse --verify main")
             local branch = vim.v.shell_error == 0 and "main" or "master"
