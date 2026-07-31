@@ -53,14 +53,14 @@ local function repo_info()
     })
   end
 
-  add("󰏗", "Repo:", root and vim.fn.fnamemodify(root[1], ":t") or "none")
-  add("", "Branch:", branch and branch[1] ~= "" and branch[1] or "none")
-  add("", "Changes:", changes and (#changes == 0 and "clean" or #changes .. " changed") or "none")
+  add("󰏗", " Repo:", root and vim.fn.fnamemodify(root[1], ":t") or "none")
+  add("", " Branch:", branch and branch[1] ~= "" and branch[1] or "none")
+  add("", " Changes:", changes and (#changes == 0 and "clean" or #changes .. " changed") or "none")
 
   if vim.fn.executable("kubectl") == 1 then
     local ctx = systemlist("kubectl config current-context")
     if ctx and ctx[1] ~= "" then
-      add("󱃾", "k8s ctx:", ctx[1])
+      add("󱃾", " k8s ctx:", ctx[1])
     end
   end
 
