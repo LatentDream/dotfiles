@@ -43,19 +43,37 @@ config.keys = {
         mods = "SUPER",
         action = wezterm.action.PasteFrom("Clipboard"),
     },
-    -- Added zoom in shortcut (CMD +)
+    -- Zoom shortcuts
+    {
+        key = "+",
+        mods = "CTRL",
+        action = wezterm.action.IncreaseFontSize,
+    },
+    {
+        key = "=",
+        mods = "CTRL",
+        action = wezterm.action.IncreaseFontSize,
+    },
+    {
+        key = "-",
+        mods = "CTRL",
+        action = wezterm.action.DecreaseFontSize,
+    },
+    {
+        key = "0",
+        mods = "CTRL",
+        action = wezterm.action.ResetFontSize,
+    },
     {
         key = "=",
         mods = "SUPER",
         action = wezterm.action.IncreaseFontSize,
     },
-    -- Added zoom out shortcut (CMD -)
     {
         key = "-",
         mods = "SUPER",
         action = wezterm.action.DecreaseFontSize,
     },
-    -- Optional: Add reset zoom shortcut (CMD 0)
     {
         key = "0",
         mods = "SUPER",
