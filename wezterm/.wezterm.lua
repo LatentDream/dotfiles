@@ -81,9 +81,7 @@ config.keys = {
     },
 }
 
--- Define themes --------------------------------------------
-local theme = require 'theme'
-config.colors = theme
+config.colors = dofile(wezterm.home_dir .. "/.config/omarchy/current/theme/wezterm.lua")
 
 config.window_frame = {
     font = wezterm.font({ family = "Iosevka Custom", weight = "Regular" }),
@@ -92,10 +90,6 @@ config.window_frame = {
 
 config.window_decorations = "NONE | RESIZE"
 config.initial_cols = 80
-config.window_background_image = "/Users/guillaumethibault/Documents/Wallpaper/background.jpeg"
-config.window_background_image_hsb = {
-    brightness = 0.01,
-}
 
 config.audible_bell = "Disabled"
 
