@@ -38,6 +38,7 @@ return {
                 "gosum",
                 "python",
                 "c_sharp",
+                "scala",
             },
             incremental_selection = {
                 enable = true,

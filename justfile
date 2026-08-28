@@ -8,8 +8,8 @@ default:
 # ── Stow ──────────────────────────────────────────────────────────────────────
 
 # OS-specific package lists
-_packages_linux := "gitconfig nvim tmux bash k9s lsd scripts zed yazi merlion wezterm atuin starship"
-_packages_mac   := "gitconfig nvim tmux zsh karabiner lazygit btop jetbrains k9s lsd merlion scripts yazi zed atuin starship"
+_packages_linux := "gitconfig nvim tmux bash k9s lsd scripts zed yazi merlion wezterm atuin starship atuin herdr"
+_packages_mac   := "gitconfig nvim tmux zsh karabiner lazygit btop jetbrains k9s lsd merlion scripts yazi zed atuin starship atuin herdr"
 _packages       := if os() == "macos" { _packages_mac } else { _packages_linux }
 
 # Stow a package, or all packages when none is specified: `just stow [package]`

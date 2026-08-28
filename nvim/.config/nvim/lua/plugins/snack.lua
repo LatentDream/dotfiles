@@ -102,7 +102,7 @@ return {
           { icon = { "󱋢", hl = "DashboardIcon" }, key = "r", desc = " Recent Files", action = ":lua Snacks.dashboard.pick('oldfiles')" },
           { icon = { "󰋖", hl = "DashboardIcon" }, key = "?", desc = " Help", action = ":help" },
           { icon = { "󰓙", hl = "DashboardIcon" }, key = "h", desc = " Checkhealth", action = ":checkhealth" },
-          { icon = { "󰊢", hl = "DashboardIcon" }, key = "b", desc = " Diff", action = function()
+          { icon = { "󰊢", hl = "DashboardIcon" }, key = "d", desc = " Diff", action = function()
             vim.fn.system("git rev-parse --verify main")
             local branch = vim.v.shell_error == 0 and "main" or "master"
             vim.cmd("DiffviewOpen " .. branch)

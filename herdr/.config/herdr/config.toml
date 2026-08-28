@@ -1,0 +1,145 @@
+# Tmux-inspired Herdr configuration.
+onboarding = false
+
+[theme]
+# Use the host terminal's ANSI palette, as in the tmux status line.
+name = "gruvbox"
+# auto_switch = true
+
+# [theme.custom]
+# Subtle contrast between the Spaces/Agents sidebar and terminal panes.
+# sidebar_bg = "#3c3836"
+
+[terminal]
+default_shell = ""
+shell_mode = "auto"
+new_cwd = "follow"
+
+[keys]
+prefix = "ctrl+e"
+detach = "prefix+d"
+
+# Sessions/workspaces.
+workspace_picker = "prefix+w"
+new_workspace = ["prefix+ctrl+n", "prefix+shift+n"]
+previous_workspace = ["prefix+shift+9", "prefix+shift+p"]
+next_workspace = ["prefix+shift+0", "prefix+shift+right"]
+rename_workspace = "prefix+shift+4"
+
+# Windows/tabs.
+new_tab = "prefix+c"
+rename_tab = "prefix+comma"
+previous_tab = "prefix+p"
+next_tab = "prefix+n"
+switch_tab = "prefix+1..9"
+close_tab = ["prefix+ampersand", "prefix+shift+x"]
+
+# Vim-style pane movement, with both direct and prefix bindings.
+focus_pane_left = ["ctrl+h", "prefix+h"]
+focus_pane_down = ["ctrl+j", "prefix+j"]
+focus_pane_up = ["ctrl+k", "prefix+k"]
+focus_pane_right = ["ctrl+l", "prefix+l"]
+last_pane = "prefix+backtick"
+split_vertical = ["prefix+percent", "prefix+v"]
+split_horizontal = ["prefix+double_quote", "prefix+minus"]
+close_pane = "prefix+x"
+rename_pane = "prefix+shift+comma"
+zoom = "prefix+z"
+resize_mode = "prefix+shift+r"
+
+# Match tmux's prefix+r reload muscle memory; scrollback moves to prefix+e.
+reload_config = "prefix+I"
+edit_scrollback = "prefix+e"
+copy_mode = "prefix+["
+toggle_sidebar = "prefix+b"
+
+# Navigate mode also uses Vim directions.
+navigate_workspace_up = "up"
+navigate_workspace_down = "down"
+navigate_pane_left = "h"
+navigate_pane_down = "j"
+navigate_pane_up = "k"
+navigate_pane_right = "l"
+
+# LazyGit popup, equivalent to tmux prefix+g.
+[[keys.command]]
+key = "prefix+g"
+type = "popup"
+command = "lazygit"
+description = "open lazygit"
+width = "100%"
+height = "100%"
+
+# Yazi file manager.
+[[keys.command]]
+key = "prefix+ctrl+y"
+type = "popup"
+command = "yazi"
+description = "open yazi"
+width = "90%"
+height = "90%"
+
+# Scratch shell.
+[[keys.command]]
+key = "prefix+ctrl+t"
+type = "popup"
+command = "exec \"${SHELL:-zsh}\""
+description = "open scratch shell"
+width = "75%"
+height = "75%"
+
+# Merlion popup.
+[[keys.command]]
+key = "prefix+ctrl+m"
+type = "popup"
+command = "EDITOR=vim merlion --local --compact"
+description = "open merlion"
+width = "90%"
+height = "90%"
+
+# AI agents open in a right-hand pane at roughly one-third width.
+[[keys.command]]
+key = "prefix+o"
+type = "shell"
+command = "pane_id=$(herdr pane split \"$HERDR_ACTIVE_PANE_ID\" --direction right --ratio 0.33 --cwd \"$HERDR_ACTIVE_PANE_CWD\" --focus | jq -r '.result.pane.pane_id') && herdr pane run \"$pane_id\" opencode . -m unity-internal-uai/claude-sonnet-5"
+description = "open OpenCode (Sonnet)"
+
+[[keys.command]]
+key = "prefix+shift+o"
+type = "shell"
+command = "pane_id=$(herdr pane split \"$HERDR_ACTIVE_PANE_ID\" --direction right --ratio 0.33 --cwd \"$HERDR_ACTIVE_PANE_CWD\" --focus | jq -r '.result.pane.pane_id') && herdr pane run \"$pane_id\" opencode . -m unity-internal-uai/gpt-5.6-sol"
+description = "open OpenCode (GPT-5.6)"
+
+[[keys.command]]
+key = "prefix+u"
+type = "shell"
+command = "pane_id=$(herdr pane split \"$HERDR_ACTIVE_PANE_ID\" --direction right --ratio 0.33 --cwd \"$HERDR_ACTIVE_PANE_CWD\" --focus | jq -r '.result.pane.pane_id') && herdr pane run \"$pane_id\" pi --model claude-sonnet-5"
+description = "open pi (Sonnet)"
+
+[ui]
+mouse_capture = true
+copy_on_select = true
+confirm_close = true
+prompt_new_tab_name = false
+prompt_new_workspace_name = true
+pane_borders = true
+pane_outer_borders = false
+pane_scrollbars = false
+pane_gaps = false
+tab_bar_position = "bottom"
+accent = "blue"
+
+agent_panel_sort = "spaces"
+[ui.toast]
+delivery = "herdr"
+delay_seconds = 1
+
+[session]
+resume_agents_on_restore = true
+
+[experimental]
+pane_history = false
+
+[advanced]
+# Herdr measures scrollback in bytes; 10 MB is its closest analogue to 10k lines.
+scrollback_limit_bytes = 10000000
