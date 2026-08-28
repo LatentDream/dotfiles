@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+missing=()
+command -v herdr >/dev/null 2>&1 || missing+=(herdr)
+command -v jq >/dev/null 2>&1 || missing+=(jq)
+command -v fzf >/dev/null 2>&1 || missing+=(fzf)
+if ((${#missing[@]})); then
+  printf 'Missing required command(s): %s\n' "${missing[*]}" >&2
+  printf 'Press enter to close... ' >&2
+  read -r _ || true
+  exit 127
+fi
+
+selection=$(
+  herdr workspace list |
+    jq -r '.result.workspaces[] | [
+      .workspace_id,
+      (.number | tostring),
+      (if .focused then "*" else " " end),
+      .label,
+      ("tabs:" + (.tab_count | tostring)),
+      ("panes:" + (.pane_count | tostring))
+    ] | @tsv' |
+    fzf \
+      --layout=reverse \
+      --prompt='workspace> ' \
+      --delimiter=$'\t' \
+      --with-nth=2,3,4,5,6 \
+      --nth=2,4
+) || exit 0
+
+workspace_id=$(awk -F '\t' '{print $1}' <<<"$selection")
+[[ -n "$workspace_id" ]] || exit 0
+herdr workspace focus "$workspace_id" >/dev/null

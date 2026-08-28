@@ -1,4 +1,5 @@
-# Tmux-inspired Herdr configuration.
+# Tmux-mirrored Herdr configuration.
+# Bindings below intentionally follow tmux defaults where Herdr has an equivalent.
 onboarding = false
 
 [theme]
@@ -16,44 +17,47 @@ shell_mode = "auto"
 new_cwd = "follow"
 
 [keys]
+# tmux-style prefix, using my preferred Ctrl+E instead of tmux default Ctrl+B.
 prefix = "ctrl+e"
+help = "prefix+?"
 detach = "prefix+d"
+copy_mode = "prefix+["
 
-# Sessions/workspaces.
-workspace_picker = "prefix+w"
-new_workspace = ["prefix+ctrl+n", "prefix+shift+n"]
-previous_workspace = ["prefix+shift+9", "prefix+shift+p"]
-next_workspace = ["prefix+shift+0", "prefix+shift+right"]
+# Workspaces are Herdr's closest analogue to tmux sessions.
+workspace_picker = "prefix+s"
+new_workspace = "prefix+ctrl+c"
 rename_workspace = "prefix+shift+4"
+previous_workspace = "prefix+shift+9"
+next_workspace = "prefix+shift+0"
 
-# Windows/tabs.
+# Tabs are Herdr's closest analogue to tmux windows.
 new_tab = "prefix+c"
 rename_tab = "prefix+comma"
 previous_tab = "prefix+p"
 next_tab = "prefix+n"
 switch_tab = "prefix+1..9"
-close_tab = ["prefix+ampersand", "prefix+shift+x"]
+close_tab = "prefix+ampersand"
 
-# Vim-style pane movement, with both direct and prefix bindings.
-focus_pane_left = ["ctrl+h", "prefix+h"]
-focus_pane_down = ["ctrl+j", "prefix+j"]
-focus_pane_up = ["ctrl+k", "prefix+k"]
-focus_pane_right = ["ctrl+l", "prefix+l"]
-last_pane = "prefix+backtick"
-split_vertical = ["prefix+percent", "prefix+v"]
-split_horizontal = ["prefix+double_quote", "prefix+minus"]
+# Panes: tmux default creation, navigation, closing, last-pane, and zoom keys.
+split_vertical = "prefix+percent"
+split_horizontal = "prefix+double_quote"
+focus_pane_left = "prefix+left"
+focus_pane_down = "prefix+down"
+focus_pane_up = "prefix+up"
+focus_pane_right = "prefix+right"
+cycle_pane_next = "prefix+o"
+last_pane = "prefix+semicolon"
 close_pane = "prefix+x"
-rename_pane = "prefix+shift+comma"
 zoom = "prefix+z"
-resize_mode = "prefix+shift+r"
 
-# Match tmux's prefix+r reload muscle memory; scrollback moves to prefix+e.
-reload_config = "prefix+I"
+# Herdr-only actions kept off tmux defaults unless they have a common tmux-ish binding.
+reload_config = "prefix+r"
+resize_mode = "prefix+ctrl+r"
+rename_pane = "prefix+shift+p"
 edit_scrollback = "prefix+e"
-copy_mode = "prefix+["
 toggle_sidebar = "prefix+b"
 
-# Navigate mode also uses Vim directions.
+# Navigate mode also uses Vim directions inside Herdr's UI.
 navigate_workspace_up = "up"
 navigate_workspace_down = "down"
 navigate_pane_left = "h"
@@ -61,60 +65,23 @@ navigate_pane_down = "j"
 navigate_pane_up = "k"
 navigate_pane_right = "l"
 
-# LazyGit popup, equivalent to tmux prefix+g.
+# Workspace picker via fzf, shown as a popup overlay.
 [[keys.command]]
-key = "prefix+g"
+key = "prefix+j"
+type = "popup"
+command = "/home/latent/dotfiles/herdr/.config/herdr/bin/herdr-workspace-fzf"
+description = "pick workspace with fzf"
+width = "40%"
+height = "40%"
+
+# LazyGit popup overlay.
+[[keys.command]]
+key = "prefix+ctrl+g"
 type = "popup"
 command = "lazygit"
 description = "open lazygit"
 width = "100%"
 height = "100%"
-
-# Yazi file manager.
-[[keys.command]]
-key = "prefix+ctrl+y"
-type = "popup"
-command = "yazi"
-description = "open yazi"
-width = "90%"
-height = "90%"
-
-# Scratch shell.
-[[keys.command]]
-key = "prefix+ctrl+t"
-type = "popup"
-command = "exec \"${SHELL:-zsh}\""
-description = "open scratch shell"
-width = "75%"
-height = "75%"
-
-# Merlion popup.
-[[keys.command]]
-key = "prefix+ctrl+m"
-type = "popup"
-command = "EDITOR=vim merlion --local --compact"
-description = "open merlion"
-width = "90%"
-height = "90%"
-
-# AI agents open in a right-hand pane at roughly one-third width.
-[[keys.command]]
-key = "prefix+o"
-type = "shell"
-command = "pane_id=$(herdr pane split \"$HERDR_ACTIVE_PANE_ID\" --direction right --ratio 0.33 --cwd \"$HERDR_ACTIVE_PANE_CWD\" --focus | jq -r '.result.pane.pane_id') && herdr pane run \"$pane_id\" opencode . -m unity-internal-uai/claude-sonnet-5"
-description = "open OpenCode (Sonnet)"
-
-[[keys.command]]
-key = "prefix+shift+o"
-type = "shell"
-command = "pane_id=$(herdr pane split \"$HERDR_ACTIVE_PANE_ID\" --direction right --ratio 0.33 --cwd \"$HERDR_ACTIVE_PANE_CWD\" --focus | jq -r '.result.pane.pane_id') && herdr pane run \"$pane_id\" opencode . -m unity-internal-uai/gpt-5.6-sol"
-description = "open OpenCode (GPT-5.6)"
-
-[[keys.command]]
-key = "prefix+u"
-type = "shell"
-command = "pane_id=$(herdr pane split \"$HERDR_ACTIVE_PANE_ID\" --direction right --ratio 0.33 --cwd \"$HERDR_ACTIVE_PANE_CWD\" --focus | jq -r '.result.pane.pane_id') && herdr pane run \"$pane_id\" pi --model claude-sonnet-5"
-description = "open pi (Sonnet)"
 
 [ui]
 mouse_capture = true
