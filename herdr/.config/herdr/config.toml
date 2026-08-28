@@ -41,10 +41,11 @@ close_tab = "prefix+ampersand"
 # Panes: tmux default creation, navigation, closing, last-pane, and zoom keys.
 split_vertical = "prefix+percent"
 split_horizontal = "prefix+double_quote"
-focus_pane_left = "prefix+left"
-focus_pane_down = "prefix+down"
-focus_pane_up = "prefix+up"
-focus_pane_right = "prefix+right"
+
+focus_pane_down = ["prefix+down", "prefix+ctrl+j", "ctrl+j"]
+focus_pane_up = ["prefix+up", "prefix+ctrl+k", "ctrl+k"]
+focus_pane_right = ["prefix+right", "prefix+ctrl+l", "ctrl+l"]
+focus_pane_left = ["prefix+left", "prefix+ctrl+h", "ctrl+h"]
 cycle_pane_next = "prefix+o"
 last_pane = "prefix+semicolon"
 close_pane = "prefix+x"
