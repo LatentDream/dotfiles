@@ -13,6 +13,8 @@ alias cg='cd `git rev-parse --show-toplevel`'
 alias adog='git log --all --decorate --oneline --graph'
 # Tmux
 alias t='tmux'
+alias ta='tmux attach'
+alias td='tmux detach'
 # Software
 alias v='nvim'
 alias y='yazi'
@@ -44,6 +46,7 @@ alias ..l='cd .. && ls'
 alias :q='exit'
 alias cd..='cd ..'
 alias sudp='sudo'
+alias cc='claude --allow-dangerously-skip-permissions'
 # -------------------------------
 
 # Tmux session start
@@ -69,3 +72,5 @@ export EDITOR="/usr/bin/nvim"
 # User tools directory ----------
 export PATH="$HOME/tools/:$PATH"
 
+# Remove the annoying starship startup warnings
+export STARSHIP_LOG=error
