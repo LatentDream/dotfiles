@@ -24,6 +24,9 @@ for option in status-left status-right; do
 done
 
 tmux set-environment -g TMUX_AGENT_INDICATOR_DIR "$CURRENT_DIR"
+tmux set-hook -g after-select-window "run-shell '$CURRENT_DIR/scripts/clear-done.sh #{window_id}'"
+tmux set-hook -g after-select-pane "run-shell '$CURRENT_DIR/scripts/clear-done.sh #{window_id}'"
+tmux set-hook -g client-focus-in "run-shell '$CURRENT_DIR/scripts/clear-done.sh #{window_id}'"
 
 if tmux show-environment -g 2>/dev/null | grep -q '_STATE=running$'; then
     animation_pid="$(tmux show-environment -g TMUX_AGENT_ANIMATION_PID 2>/dev/null | sed 's/^[^=]*=//' || true)"
