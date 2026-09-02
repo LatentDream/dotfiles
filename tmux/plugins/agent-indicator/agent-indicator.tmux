@@ -7,7 +7,7 @@ animation_pid="$(tmux show-environment -g TMUX_AGENT_ANIMATION_PID 2>/dev/null |
 if [ -n "$animation_pid" ] && kill -0 "$animation_pid" 2>/dev/null; then
     animation_command="$(ps -p "$animation_pid" -o args= 2>/dev/null || true)"
     case "$animation_command" in
-        *'/tmux-agent-indicator/scripts/animation.sh'*)
+        *'/agent-indicator/scripts/animation.sh'*)
             kill "$animation_pid" 2>/dev/null || true
             tmux set-environment -gu TMUX_AGENT_ANIMATION_PID 2>/dev/null || true
             tmux set-environment -gu TMUX_AGENT_ANIMATION_FRAME 2>/dev/null || true

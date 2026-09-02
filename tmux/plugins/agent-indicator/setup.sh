@@ -26,7 +26,7 @@ trap 'rm -f "$tmp"' EXIT
 jq --arg script "$STATE_SCRIPT" '
   def command($state): {
     type: "command",
-    command: ($script + " --agent claude --state " + $state)
+    command: (($script | @sh) + " --agent claude --state " + $state)
   };
   def hook($state): [{
     matcher: "",

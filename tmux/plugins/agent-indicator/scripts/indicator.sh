@@ -60,11 +60,13 @@ while IFS= read -r line; do
         running|needs-input|done) ;;
         *) continue ;;
     esac
-    if ! metadata="$(tmux display-message -p -t "$pane_id" $'#{session_name}\t#{window_index}\t#{pane_index}' 2>/dev/null)"; then
+    if ! metadata="$(tmux display-message -p -t "$pane_id" $'#{session_name}\t#{window_index}\t#{pane_index}\t#{pane_id}' 2>/dev/null)" \
+        || [ "${metadata##*$'\t'}" != "$pane_id" ]; then
         tmux set-environment -gu "TMUX_AGENT_PANE_${pane_id}_STATE" 2>/dev/null || true
         tmux set-environment -gu "TMUX_AGENT_PANE_${pane_id}_AGENT" 2>/dev/null || true
         continue
     fi
+    metadata="${metadata%$'\t'*}"
     records+=("$(priority "$state")"$'\t'"$metadata"$'\t'"$pane_id"$'\t'"$state")
 done < <(tmux show-environment -g 2>/dev/null || true)
 
