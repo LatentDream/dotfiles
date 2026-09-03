@@ -91,6 +91,8 @@
 
   # Checkout with progress indicator
   co = checkout --progress
+  chekcout = checkout
+  checkotu = checkout
 
   # Enhanced status that shows main repo and all submodules with indentation
   s = "!f(){ \
