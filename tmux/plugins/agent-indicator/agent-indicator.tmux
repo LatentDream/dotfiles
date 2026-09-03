@@ -3,6 +3,16 @@
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INDICATOR_COMMAND="#($CURRENT_DIR/scripts/indicator.sh)"
 
+picker_key="$(tmux show-option -gqv '@agent-indicator-picker-key' 2>/dev/null || true)"
+if [ -n "$picker_key" ]; then
+    picker_width="$(tmux show-option -gqv '@agent-indicator-picker-width' 2>/dev/null || true)"
+    picker_height="$(tmux show-option -gqv '@agent-indicator-picker-height' 2>/dev/null || true)"
+    tmux bind-key "$picker_key" if-shell \
+        "'$CURRENT_DIR/scripts/agent-picker.sh' --has-agents" \
+        "display-popup -T 'Agents' -w '${picker_width:-60%}' -h '${picker_height:-60%}' -E '$CURRENT_DIR/scripts/agent-picker.sh'" \
+        "display-message 'No agents ready'"
+fi
+
 animation_pid="$(tmux show-environment -g TMUX_AGENT_ANIMATION_PID 2>/dev/null | sed 's/^[^=]*=//' || true)"
 if [ -n "$animation_pid" ] && kill -0 "$animation_pid" 2>/dev/null; then
     animation_command="$(ps -p "$animation_pid" -o args= 2>/dev/null || true)"
