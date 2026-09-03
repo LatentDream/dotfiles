@@ -38,6 +38,7 @@ is_enabled "$(get_option '@agent-indicator-indicator-enabled' 'on')" || exit 0
 max_entries="$(get_option '@agent-indicator-max-entries' '8')"
 separator="$(get_option '@agent-indicator-separator' ' ')"
 empty_text="$(get_option '@agent-indicator-empty-text' ' None')"
+indicator_icon="$(get_option '@agent-indicator-icon' '')"
 running_icon="$(get_option '@agent-indicator-running-icon' '󱙺')"
 running_spinner="$(get_option '@agent-indicator-running-spinner' '⠋,⠙,⠹,⠸,⠼,⠴,⠦,⠧,⠇,⠏')"
 input_icon="$(get_option '@agent-indicator-needs-input-icon' '󱚟')"
@@ -71,12 +72,12 @@ while IFS= read -r line; do
 done < <(tmux show-environment -g 2>/dev/null || true)
 
 if [ "${#records[@]}" -eq 0 ]; then
-    printf '%s\n' "$empty_text"
+    printf '%s%s\n' "$indicator_icon" "$empty_text"
     exit 0
 fi
 
 animation_frame="$(get_env 'TMUX_AGENT_ANIMATION_FRAME')"
-output=" "
+output="${indicator_icon} "
 count=0
 while IFS=$'\t' read -r _ _ _ _ pane_id state; do
     [ "$count" -lt "$max_entries" ] 2>/dev/null || break
