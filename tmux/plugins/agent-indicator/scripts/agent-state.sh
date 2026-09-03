@@ -3,7 +3,7 @@
 set -euo pipefail
 
 usage() {
-    printf 'Usage: agent-state.sh --agent <name> --state <running|needs-input|done|off> [--pane <pane-id>]\n' >&2
+    printf 'Usage: agent-state.sh --agent <name> [--state <running|needs-input|done|off>] [--pane <pane-id>] [--session-id <id>] [--session-name <name>] [--hook-json]\n' >&2
 }
 
 get_env() {
@@ -78,32 +78,59 @@ sync_animation() {
 agent=""
 state=""
 requested_pane=""
+session_id=""
+session_name=""
+hook_json=false
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --agent) agent="${2:-}"; shift 2 ;;
         --state) state="${2:-}"; shift 2 ;;
         --pane) requested_pane="${2:-}"; shift 2 ;;
+        --session-id) session_id="${2:-}"; shift 2 ;;
+        --session-name) session_name="${2:-}"; shift 2 ;;
+        --hook-json) hook_json=true; shift ;;
         *) usage; exit 1 ;;
     esac
 done
 
-[ -n "$agent" ] && [ -n "$state" ] || { usage; exit 1; }
-case "$state" in
-    running|needs-input|done|off) ;;
-    *) usage; exit 1 ;;
-esac
+[ -n "$agent" ] || { usage; exit 1; }
+if $hook_json; then
+    command -v jq >/dev/null 2>&1 || exit 1
+    payload="$(cat)"
+    IFS=$'\x1f' read -r session_id session_name < <(
+        printf '%s' "$payload" | jq -r '[.session_id // "", .session_name // .session_title // ""] | join("\u001f")'
+    )
+fi
+if [ -n "$state" ]; then
+    case "$state" in
+        running|needs-input|done|off) ;;
+        *) usage; exit 1 ;;
+    esac
+fi
+[ -n "$state$session_id$session_name" ] || { usage; exit 1; }
 
 pane_id="$(resolve_pane "$agent" "$requested_pane")"
 state_key="TMUX_AGENT_PANE_${pane_id}_STATE"
 agent_key="TMUX_AGENT_PANE_${pane_id}_AGENT"
+session_id_key="TMUX_AGENT_PANE_${pane_id}_SESSION_ID"
+session_name_key="TMUX_AGENT_PANE_${pane_id}_SESSION_NAME"
 
 if [ "$state" = "off" ]; then
-    tmux set-environment -gu "$state_key" 2>/dev/null || true
-    tmux set-environment -gu "$agent_key" 2>/dev/null || true
-else
+    for key in "$state_key" "$agent_key" "$session_id_key" "$session_name_key"; do
+        tmux set-environment -gu "$key" 2>/dev/null || true
+    done
+elif [ -n "$state" ]; then
     tmux set-environment -g "$state_key" "$state"
     tmux set-environment -g "$agent_key" "$agent"
 fi
+if [ -n "$session_id" ]; then
+    tmux set-environment -g "$session_id_key" "${session_id//$'\n'/ }"
+fi
+if [ -n "$session_name" ]; then
+    session_name="${session_name//$'\n'/ }"
+    session_name="${session_name//$'\t'/ }"
+    tmux set-environment -g "$session_name_key" "$session_name"
+fi
 
-sync_animation
+[ -z "$state" ] || sync_animation
 tmux refresh-client -S >/dev/null 2>&1 || true

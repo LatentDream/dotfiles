@@ -64,8 +64,9 @@ while IFS= read -r line; do
     esac
     if ! metadata="$(tmux display-message -p -t "$pane_id" $'#{session_name}\t#{window_index}\t#{pane_index}\t#{pane_id}' 2>/dev/null)" \
         || [ "${metadata##*$'\t'}" != "$pane_id" ]; then
-        tmux set-environment -gu "TMUX_AGENT_PANE_${pane_id}_STATE" 2>/dev/null || true
-        tmux set-environment -gu "TMUX_AGENT_PANE_${pane_id}_AGENT" 2>/dev/null || true
+        for suffix in STATE AGENT SESSION_ID SESSION_NAME; do
+            tmux set-environment -gu "TMUX_AGENT_PANE_${pane_id}_${suffix}" 2>/dev/null || true
+        done
         continue
     fi
     metadata="${metadata%$'\t'*}"
