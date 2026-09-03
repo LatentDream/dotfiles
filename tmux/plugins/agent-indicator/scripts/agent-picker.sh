@@ -37,28 +37,68 @@ shorten_path() {
     fi
 }
 
+mode='notifications'
+case "${1:-}" in
+    --all|--has-all-agents) mode='all' ;;
+    --has-agents|'') ;;
+    *) printf 'Usage: agent-picker.sh [--all|--has-agents|--has-all-agents]\n' >&2; exit 2 ;;
+esac
+
 records=()
 path_max_length="$(get_option '@agent-indicator-picker-path-max-length' '36')"
-while IFS= read -r line; do
-    case "$line" in
-        TMUX_AGENT_PANE_*_STATE=needs-input) priority=1; state='waiting' ;;
-        TMUX_AGENT_PANE_*_STATE=done) priority=2; state='done' ;;
-        *) continue ;;
+detected_agents=""
+if [ "$mode" = 'all' ]; then
+    detected_agents="$(
+        {
+            tmux list-panes -a -F $'root\x1f#{pane_pid}\x1f#{pane_id}'
+            ps -axo pid=,ppid=,comm= | awk '{ pid=$1; ppid=$2; $1=$2=""; sub(/^ +/, ""); printf "process\037%s\037%s\037%s\n", pid, ppid, $0 }'
+        } | awk -F $'\x1f' '
+            $1 == "root" { root[$2]=$3; next }
+            $1 == "process" { parent[$2]=$3; command[$2]=$4 }
+            END {
+                for (pid in command) {
+                    name=command[pid]
+                    sub(/^.*\//, "", name)
+                    if (name != "opencode" && name != "claude" && name != "harness") continue
+                    ancestor=pid
+                    while (ancestor != "" && !(ancestor in root)) ancestor=parent[ancestor]
+                    if (ancestor in root && !(root[ancestor] in found)) {
+                        print root[ancestor] "\037" name
+                        found[root[ancestor]]=1
+                    }
+                }
+            }
+        '
+    )"
+fi
+
+while IFS=$'\x1f' read -r pane_id _ session window pane command start_command path; do
+    notification_state="$(tmux show-environment -g "TMUX_AGENT_PANE_${pane_id}_STATE" 2>/dev/null | sed 's/^[^=]*=//' || true)"
+    tracked_agent="$(tmux show-environment -g "TMUX_AGENT_PANE_${pane_id}_AGENT" 2>/dev/null | sed 's/^[^=]*=//' || true)"
+
+    case "$notification_state" in
+        needs-input) priority=1; state='waiting' ;;
+        done) priority=2; state='done' ;;
+        running) priority=3; state='running' ;;
+        *) priority=4; state='active' ;;
     esac
 
-    pane_id="${line#TMUX_AGENT_PANE_}"
-    pane_id="${pane_id%%_STATE=*}"
-    if ! metadata="$(tmux display-message -p -t "$pane_id" $'#{session_name}\x1f#{window_index}\x1f#{pane_index}\x1f#{pane_current_command}\x1f#{pane_start_command}\x1f#{pane_current_path}\x1f#{pane_id}' 2>/dev/null)" \
-        || [ "${metadata##*$'\x1f'}" != "$pane_id" ]; then
-        cleanup_stale_record "$pane_id"
-        continue
+    if [ "$mode" = 'notifications' ]; then
+        case "$notification_state" in
+            needs-input|done) agent="${tracked_agent:-unknown}" ;;
+            *) continue ;;
+        esac
+    else
+        agent="$(printf '%s\n' "$detected_agents" | awk -F $'\x1f' -v pane="$pane_id" '$1 == pane { print $2; exit }')"
+        if [ -z "$agent" ]; then
+            case "$notification_state" in
+                running|needs-input|done) agent="${tracked_agent:-unknown}" ;;
+                *) continue ;;
+            esac
+        fi
     fi
 
-    metadata="${metadata%$'\x1f'*}"
-    IFS=$'\x1f' read -r session window pane command start_command path <<< "$metadata"
-    agent="$(tmux show-environment -g "TMUX_AGENT_PANE_${pane_id}_AGENT" 2>/dev/null | sed 's/^[^=]*=//' || true)"
-    agent="${agent:-unknown}"
-    command="${command:-${start_command:-unknown}}"
+    command="${command:-${start_command:-$agent}}"
 
     # Keep each fzf candidate on one line even if external metadata is unusual.
     agent="${agent//$'\t'/ }"
@@ -69,9 +109,21 @@ while IFS= read -r line; do
     printf -v display '%-9s  %-10s  %-12.12s  %-36s  %s' \
         "$state" "$agent" "$command" "$path" "${session}:${window}.${pane}"
     records+=("${priority}"$'\t'"${pane_id}"$'\t'"${display}")
+done < <(tmux list-panes -a -F $'#{pane_id}\x1f#{pane_pid}\x1f#{session_name}\x1f#{window_index}\x1f#{pane_index}\x1f#{pane_current_command}\x1f#{pane_start_command}\x1f#{pane_current_path}')
+
+while IFS= read -r line; do
+    case "$line" in
+        TMUX_AGENT_PANE_*_STATE=*) ;;
+        *) continue ;;
+    esac
+    pane_id="${line#TMUX_AGENT_PANE_}"
+    pane_id="${pane_id%%_STATE=*}"
+    tmux display-message -p -t "$pane_id" '#{pane_id}' >/dev/null 2>&1 || cleanup_stale_record "$pane_id"
 done < <(tmux show-environment -g 2>/dev/null || true)
 
-[ "${1:-}" != '--has-agents' ] || [ "${#records[@]}" -gt 0 ]
+case "${1:-}" in
+    --has-agents|--has-all-agents) [ "${#records[@]}" -gt 0 ]; exit ;;
+esac
 
 if [ "${#records[@]}" -eq 0 ]; then
     exit 0
@@ -89,7 +141,7 @@ selection="$(
             --delimiter=$'\t' \
             --with-nth=3 \
             --header='STATE      AGENT       COMMAND       PATH                                  TARGET' \
-            --prompt='Agent> '
+            --prompt="$( [ "$mode" = 'all' ] && printf 'All agents> ' || printf 'Agent> ' )"
 )" || exit 0
 
 [ -n "$selection" ] || exit 0
