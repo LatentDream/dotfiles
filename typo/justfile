@@ -1,0 +1,75 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+plugin_id := `jq -r '.id' manifest.json`
+
+# List available recipes.
+default:
+    @just --list
+
+# Validate, replace the installed plugin files, rescan, and enable the plugin.
+install:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source_dir="$(pwd -P)"
+    plugin_id="{{plugin_id}}"
+    plugin_root="${OMARCHY_PLUGIN_DIR:-$HOME/.config/omarchy/plugins}"
+    install_dir="$plugin_root/$plugin_id"
+    stage_dir="$plugin_root/.${plugin_id}.install.$$"
+
+    command -v omarchy >/dev/null || { echo "Missing required command: omarchy" >&2; exit 1; }
+    command -v omarchy-shell >/dev/null || { echo "Missing required command: omarchy-shell" >&2; exit 1; }
+    command -v jq >/dev/null || { echo "Missing required command: jq" >&2; exit 1; }
+    command -v rsync >/dev/null || { echo "Missing required command: rsync" >&2; exit 1; }
+
+    [[ "$plugin_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { echo "Unsafe plugin id: $plugin_id" >&2; exit 1; }
+    [[ "$plugin_id" != *..* && "$plugin_id" != */* ]] || { echo "Unsafe plugin id: $plugin_id" >&2; exit 1; }
+
+    omarchy plugin validate "$source_dir"
+
+    mkdir -p "$plugin_root"
+    rm -rf -- "$stage_dir"
+    trap 'rm -rf -- "$stage_dir"' EXIT
+
+    mkdir -p "$stage_dir"
+    rsync -a --delete \
+      --exclude='.git/' \
+      --exclude='__pycache__/' \
+      --exclude='*.pyc' \
+      --exclude='.pytest_cache/' \
+      --exclude='.mypy_cache/' \
+      --exclude='.ruff_cache/' \
+      "$source_dir/" "$stage_dir/"
+
+    omarchy plugin validate "$stage_dir"
+
+    rm -rf -- "$install_dir"
+    mv -- "$stage_dir" "$install_dir"
+    trap - EXIT
+
+    omarchy-shell shell rescanPlugins || true
+    omarchy plugin enable "$plugin_id" --section right
+
+    omarchy restart shell
+
+# Disable and delete the installed plugin files.
+remove:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    plugin_id="{{plugin_id}}"
+    plugin_root="${OMARCHY_PLUGIN_DIR:-$HOME/.config/omarchy/plugins}"
+    install_dir="$plugin_root/$plugin_id"
+
+    [[ "$plugin_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { echo "Unsafe plugin id: $plugin_id" >&2; exit 1; }
+    [[ "$plugin_id" != *..* && "$plugin_id" != */* ]] || { echo "Unsafe plugin id: $plugin_id" >&2; exit 1; }
+
+    if command -v omarchy >/dev/null && command -v omarchy-shell >/dev/null; then
+    omarchy plugin disable "$plugin_id" || true
+    fi
+
+    rm -rf -- "$install_dir"
+
+    if command -v omarchy-shell >/dev/null; then
+    omarchy-shell shell rescanPlugins || true
+    fi
+
+    echo "Removed $plugin_id from $install_dir"

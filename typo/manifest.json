@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.latent.typo",
+  "name": "Typo",
+  "version": "0.1.0",
+  "author": "latent",
+  "description": "Correct clipboard spelling and grammar with an OpenAI-compatible LLM",
+  "license": "MIT",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "Widget.qml"
+  },
+  "barWidget": {
+    "displayName": "Typo",
+    "description": "Correct clipboard spelling and grammar",
+    "category": "Utilities",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
