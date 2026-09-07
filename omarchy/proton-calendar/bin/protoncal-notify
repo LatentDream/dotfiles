@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+import json
+import os
+import subprocess
+import sys
+import time
+
+
+def worker(payload):
+    delay = max(0, int(payload.get("delaySeconds", 0)))
+    if delay:
+        time.sleep(delay)
+    summary = str(payload.get("title", "Proton Calendar"))
+    body = str(payload.get("body", ""))
+    icon = str(payload.get("icon", ""))
+    url = str(payload.get("url", ""))
+    swedish = payload.get("language") == "sv"
+    open_label = "Öppna i Proton" if swedish else "Open in Proton"
+    snooze_5_label = "Skjut upp 5 min" if swedish else "Snooze 5 min"
+    snooze_15_label = "Skjut upp 15 min" if swedish else "Snooze 15 min"
+    dismiss_label = "Stäng" if swedish else "Dismiss"
+    while True:
+        command = [
+            "notify-send", "--app-name=Proton Calendar", "--wait",
+            "--action=default=" + open_label, "--action=snooze-5=" + snooze_5_label,
+            "--action=snooze-15=" + snooze_15_label, "--action=dismiss=" + dismiss_label,
+        ]
+        if icon:
+            command.append("--icon=" + icon)
+        command.extend([summary, body])
+        if os.environ.get("PROTONCAL_NOTIFY_DRY_RUN") == "1":
+            print(json.dumps(command, ensure_ascii=False))
+            return
+        result = subprocess.run(command, capture_output=True, text=True)
+        action = result.stdout.strip()
+        if action == "default" and url.startswith("https://"):
+            subprocess.Popen(["xdg-open", url], start_new_session=True)
+            return
+        if action == "snooze-5":
+            time.sleep(300)
+            body = ("Uppskjuten 5 minuter · " if swedish else "Snoozed 5 minutes · ") + body
+            continue
+        if action == "snooze-15":
+            time.sleep(900)
+            body = ("Uppskjuten 15 minuter · " if swedish else "Snoozed 15 minutes · ") + body
+            continue
+        return
+
+
+def main():
+    raw = sys.stdin.readline()
+    if "--worker" in sys.argv:
+        worker(json.loads(raw))
+        return
+    process = subprocess.Popen(
+        [sys.executable, os.path.abspath(__file__), "--worker"],
+        stdin=subprocess.PIPE, start_new_session=True,
+    )
+    process.stdin.write(raw.encode("utf-8"))
+    process.stdin.close()
+
+
+if __name__ == "__main__":
+    main()

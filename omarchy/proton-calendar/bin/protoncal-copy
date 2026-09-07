@@ -1,0 +1,8 @@
+#!/usr/bin/env python3
+import json
+import subprocess
+import sys
+
+
+value = json.loads(sys.stdin.readline())
+subprocess.run(["wl-copy"], input=str(value).encode("utf-8"))

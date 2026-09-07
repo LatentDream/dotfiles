@@ -1,0 +1,23 @@
+default:
+    just --list
+
+plugin_id := "io.github.latentdream.protoncalendar"
+plugin_dir := env_var("HOME") / ".config/omarchy/plugins" / plugin_id
+
+# Link this checkout into Omarchy, rescan plugins, and enable the widget.
+install:
+    omarchy plugin validate "{{justfile_directory()}}"
+    mkdir -p "$(dirname '{{plugin_dir}}')"
+    ln -sfn "{{justfile_directory()}}" "{{plugin_dir}}"
+    omarchy shell shell rescanPlugins
+    omarchy plugin enable "{{plugin_id}}"
+
+# Rescan after editing files; plugin code normally hot-reloads automatically.
+reload:
+    omarchy shell shell rescanPlugins
+
+# Remove only the local symlink, preserving this checkout and calendar data.
+uninstall:
+    test -L "{{plugin_dir}}"
+    rm "{{plugin_dir}}"
+    omarchy shell shell rescanPlugins

@@ -1,0 +1,284 @@
+#!/usr/bin/env bash
+# End-to-end check of the parts that have no eyes on them: the sync backend
+# and Model.js. Runs against test/fixture.ics -- an iCalendar file shaped like
+# what Proton serves, carrying the cases that are easy to get wrong (all-day
+# with its exclusive end, a multi-day span, an event over midnight, a UTC
+# stamp, a weekly rule, and a daily rule crossing the autumn DST change).
+#
+# Fixtures are served over a local HTTP server rather than file:// -- the
+# backend only fetches http/https, and the tests should exercise that same
+# path rather than a special case for themselves.
+#
+# Fixed TZ, so the DST assertions mean the same thing on any machine.
+set -euo pipefail
+
+cd "$(dirname "$0")"
+root=$(cd .. && pwd)
+work=$(mktemp -d)
+
+port=$(python3 -c "import socket; s=socket.socket(); s.bind(('127.0.0.1',0)); print(s.getsockname()[1]); s.close()")
+python3 -m http.server "$port" --bind 127.0.0.1 --directory "$PWD" >/dev/null 2>&1 &
+server_pid=$!
+trap 'kill "$server_pid" 2>/dev/null; wait "$server_pid" 2>/dev/null || true; rm -rf "$work"' EXIT
+
+for _ in $(seq 1 50); do
+  curl -sf "http://127.0.0.1:$port/fixture.ics" >/dev/null 2>&1 && break
+  sleep 0.1
+done
+
+export TZ=Europe/Stockholm
+# The tests' own fixture server is on loopback, which fetch() blocks by
+# default (see the SSRF test below for proof that it actually does). Only
+# the test harness sets this -- a real sync never does.
+export PROTONCAL_ALLOW_PRIVATE_HOSTS=1
+export PROTONCAL_DISABLE_SECRET_STORE=1
+
+printf '[{"name": "", "url": "http://127.0.0.1:%s/fixture.ics"}]\n' "$port" > "$work/feeds.json"
+
+echo "== backend"
+"$root/bin/protoncal-sync" --feeds "$work/feeds.json" > "$work/payload.json"
+python3 -c "
+import json, sys
+payload = json.load(open('$work/payload.json'))
+assert payload['configured'], 'feed not picked up'
+assert payload['ok'], payload['feeds']
+assert payload['events'], 'no events expanded'
+print('   feeds:', len(payload['feeds']), ' events:', len(payload['events']))
+"
+
+echo "== model"
+node model-test.js "$work/payload.json"
+
+echo "== hostile feed (unbounded RRULE must not hang or exhaust memory)"
+printf '[{"name": "", "url": "http://127.0.0.1:%s/hostile.ics"}]\n' "$port" > "$work/hostile-feeds.json"
+start=$(date +%s)
+"$root/bin/protoncal-sync" --feeds "$work/hostile-feeds.json" > "$work/hostile-payload.json"
+elapsed=$(( $(date +%s) - start ))
+python3 -c "
+import json
+payload = json.load(open('$work/hostile-payload.json'))
+assert not payload['ok'], 'a runaway RRULE must not report ok'
+assert 'recurrence' in payload['feeds'][0]['error'], payload['feeds']
+print('   bounded in', $elapsed, 's:', payload['feeds'][0]['error'])
+"
+[ "$elapsed" -lt 20 ] || { echo "   took too long: ${elapsed}s"; exit 1; }
+
+echo "== unsupported URL scheme is rejected"
+printf '[{"name": "", "url": "file://%s/fixture.ics"}]\n' "$PWD" > "$work/local-feeds.json"
+"$root/bin/protoncal-sync" --feeds "$work/local-feeds.json" > "$work/local-payload.json"
+python3 -c "
+import json
+payload = json.load(open('$work/local-payload.json'))
+assert not payload['ok'], 'a file:// feed must not be fetched'
+assert 'unsupported URL scheme' in payload['feeds'][0]['error'], payload['feeds']
+print('   rejected:', payload['feeds'][0]['error'])
+"
+
+echo "== --add-feed-env / --remove-feed-env (URL via \$PROTONCAL_FEED_URL, not argv)"
+echo '[]' > "$work/manage-feeds.json"
+secret_url="http://127.0.0.1:$port/fixture.ics"
+PROTONCAL_FEED_URL="$secret_url" "$root/bin/protoncal-sync" \
+  --feeds "$work/manage-feeds.json" --add-feed-env --name Watched >/dev/null
+python3 -c "
+import json
+feeds = json.load(open('$work/manage-feeds.json'))
+assert feeds and feeds[0]['url'] == '$secret_url', feeds
+print('   added via env:', feeds[0]['name'])
+"
+PROTONCAL_FEED_URL="$secret_url" "$root/bin/protoncal-sync" \
+  --feeds "$work/manage-feeds.json" --remove-feed-env >/dev/null
+python3 -c "
+import json
+feeds = json.load(open('$work/manage-feeds.json'))
+assert feeds == [], feeds
+print('   removed via env')
+"
+
+echo "== webcal links normalize to HTTPS and deduplicate"
+echo '[]' > "$work/webcal-feeds.json"
+webcal_url="WEBCAL://example.com/calendar.ics"
+https_url="https://example.com/calendar.ics"
+PROTONCAL_FEED_URL="$webcal_url" "$root/bin/protoncal-sync" \
+  --feeds "$work/webcal-feeds.json" --add-feed-env --name iCloud >/dev/null
+PROTONCAL_FEED_URL="$https_url" "$root/bin/protoncal-sync" \
+  --feeds "$work/webcal-feeds.json" --add-feed-env --name Duplicate >/dev/null
+python3 -c "
+import hashlib, json
+feeds = json.load(open('$work/webcal-feeds.json'))
+assert len(feeds) == 1, feeds
+assert feeds[0]['url'] == '$https_url', feeds
+assert feeds[0]['id'] == hashlib.sha256('$https_url'.encode()).hexdigest()[:20], feeds
+print('   stored once as:', feeds[0]['url'])
+"
+PROTONCAL_FEED_URL="$webcal_url" "$root/bin/protoncal-sync" \
+  --feeds "$work/webcal-feeds.json" --remove-feed-env >/dev/null
+python3 -c "
+import json
+feeds = json.load(open('$work/webcal-feeds.json'))
+assert feeds == [], feeds
+print('   removable with original webcal link')
+"
+
+echo "== a feed pointing at a private/internal address is refused (SSRF)"
+printf '[{"name": "", "url": "http://127.0.0.1:%s/fixture.ics"}]\n' "$port" > "$work/ssrf-feeds.json"
+env -u PROTONCAL_ALLOW_PRIVATE_HOSTS "$root/bin/protoncal-sync" \
+  --feeds "$work/ssrf-feeds.json" > "$work/ssrf-payload.json"
+python3 -c "
+import json
+payload = json.load(open('$work/ssrf-payload.json'))
+assert not payload['ok'], 'a loopback-address feed must not be fetched'
+assert 'private' in payload['feeds'][0]['error'], payload['feeds']
+print('   rejected:', payload['feeds'][0]['error'])
+"
+
+echo "== a redirect hop is revalidated, not just the initial host (SSRF via redirect)"
+redirect_port=$(python3 -c "import socket; s=socket.socket(); s.bind(('127.0.0.1',0)); print(s.getsockname()[1]); s.close()")
+python3 -c "
+import http.server, sys
+class Handler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(302)
+        self.send_header('Location', 'file:///etc/passwd')
+        self.end_headers()
+    def log_message(self, *a):
+        pass
+http.server.HTTPServer(('127.0.0.1', $redirect_port), Handler).serve_forever()
+" >/dev/null 2>&1 &
+redirect_pid=$!
+for _ in $(seq 1 50); do
+  curl -s -o /dev/null "http://127.0.0.1:$redirect_port/" && break
+  sleep 0.1
+done
+
+printf '[{"name": "", "url": "http://127.0.0.1:%s/"}]\n' "$redirect_port" > "$work/redirect-feeds.json"
+"$root/bin/protoncal-sync" --feeds "$work/redirect-feeds.json" > "$work/redirect-payload.json"
+kill "$redirect_pid" 2>/dev/null; wait "$redirect_pid" 2>/dev/null || true
+python3 -c "
+import json
+payload = json.load(open('$work/redirect-payload.json'))
+assert not payload['ok'], 'a redirect to file:// must not be followed'
+assert 'unsupported URL scheme' in payload['feeds'][0]['error'], payload['feeds']
+print('   redirect target revalidated and rejected:', payload['feeds'][0]['error'])
+"
+
+echo "== a malformed redirect target fails its own feed, not the whole sync"
+malformed_port=$(python3 -c "import socket; s=socket.socket(); s.bind(('127.0.0.1',0)); print(s.getsockname()[1]); s.close()")
+python3 -c "
+import http.server
+class Handler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(302)
+        self.send_header('Location', 'http://[::1/path')
+        self.end_headers()
+    def log_message(self, *a):
+        pass
+http.server.HTTPServer(('127.0.0.1', $malformed_port), Handler).serve_forever()
+" >/dev/null 2>&1 &
+malformed_pid=$!
+for _ in $(seq 1 50); do
+  curl -s -o /dev/null "http://127.0.0.1:$malformed_port/" && break
+  sleep 0.1
+done
+
+printf '[{"name": "bad", "url": "http://127.0.0.1:%s/"}, {"name": "good", "url": "http://127.0.0.1:%s/fixture.ics"}]\n' \
+  "$malformed_port" "$port" > "$work/malformed-feeds.json"
+"$root/bin/protoncal-sync" --feeds "$work/malformed-feeds.json" > "$work/malformed-payload.json"
+malformed_exit=$?
+kill "$malformed_pid" 2>/dev/null; wait "$malformed_pid" 2>/dev/null || true
+[ "$malformed_exit" -eq 0 ] || { echo "   sync process itself crashed (exit $malformed_exit)"; exit 1; }
+python3 -c "
+import json
+payload = json.load(open('$work/malformed-payload.json'))
+bad = next(f for f in payload['feeds'] if f['name'] == 'bad')
+good = next(f for f in payload['feeds'] if f['name'] != 'bad')
+assert not bad['ok'], 'the malformed-redirect feed should fail cleanly'
+assert 'malformed' in bad['error'], bad
+assert good['ok'] and good['count'], 'a well-behaved feed must still sync fine'
+print('   bad feed failed cleanly, good feed still synced:', good['count'], 'events')
+"
+
+echo "== a URL with an embedded newline can't smuggle a second curl config directive"
+python3 -c "
+import json
+evil_url = 'https://example.invalid/x\nurl = \"http://127.0.0.1:$port/fixture.ics\"'
+json.dump([{'name': 'evil', 'url': evil_url, 'color': '#fff', 'enabled': True}],
+          open('$work/injection-feeds.json', 'w'))
+"
+"$root/bin/protoncal-sync" --feeds "$work/injection-feeds.json" > "$work/injection-payload.json"
+python3 -c "
+import json
+payload = json.load(open('$work/injection-payload.json'))
+assert not payload['ok'], 'a newline-smuggled second url directive must not be honored'
+assert 'control character' in payload['feeds'][0]['error'], payload['feeds']
+print('   rejected:', payload['feeds'][0]['error'])
+"
+
+echo "== classic --add-feed / --remove-feed (documented CLI usage) still work"
+echo '[]' > "$work/cli-feeds.json"
+"$root/bin/protoncal-sync" --feeds "$work/cli-feeds.json" \
+  --add-feed "http://127.0.0.1:$port/fixture.ics" --name CLI >/dev/null
+"$root/bin/protoncal-sync" --feeds "$work/cli-feeds.json" \
+  --remove-feed "http://127.0.0.1:$port/fixture.ics" >/dev/null
+python3 -c "
+import json
+feeds = json.load(open('$work/cli-feeds.json'))
+assert feeds == [], feeds
+print('   add/remove via argv still works')
+"
+
+echo "== feed preferences update by non-secret id"
+echo '[]' > "$work/preference-feeds.json"
+PROTONCAL_FEED_URL="$secret_url" "$root/bin/protoncal-sync" \
+  --feeds "$work/preference-feeds.json" --add-feed-env --name Preferences >/dev/null
+feed_id=$(python3 -c "import json; print(json.load(open('$work/preference-feeds.json'))[0]['id'])")
+PROTONCAL_FEED_UPDATE="{\"id\":\"$feed_id\",\"name\":\"Work\",\"color\":\"#112233\",\"enabled\":false,\"notificationsEnabled\":false,\"reminderMinutes\":25}" \
+  "$root/bin/protoncal-sync" --feeds "$work/preference-feeds.json" --update-feed-env >/dev/null
+python3 -c "
+import json
+feed = json.load(open('$work/preference-feeds.json'))[0]
+assert feed['name'] == 'Work' and feed['color'] == '#112233', feed
+assert not feed['enabled'] and not feed['notificationsEnabled'], feed
+assert feed['reminderMinutes'] == 25, feed
+print('   preferences saved:', feed['name'], feed['color'])
+"
+
+echo "== share links migrate into Secret Service"
+unset PROTONCAL_DISABLE_SECRET_STORE
+export PROTONCAL_SECRET_TOOL="$root/test/fake-secret-tool"
+export PROTONCAL_TEST_SECRET_DIR="$work/secrets"
+printf '[{"name":"Secure","url":"%s"}]\n' "$secret_url" > "$work/secure-feeds.json"
+"$root/bin/protoncal-sync" --feeds "$work/secure-feeds.json" > "$work/secure-payload.json"
+python3 -c "
+import json
+feed = json.load(open('$work/secure-feeds.json'))[0]
+payload = json.load(open('$work/secure-payload.json'))
+assert feed['secretStored'] and 'url' not in feed, feed
+assert payload['ok'] and payload['events'], payload
+assert 'url' not in payload['feeds'][0], payload['feeds'][0]
+print('   keyring-backed feed:', feed['id'])
+"
+
+echo "== notification actions use a private stdin payload"
+notification_command=$(printf '%s\n' '{"title":"Test","body":"Body","url":"https://calendar.proton.me"}' \
+  | PROTONCAL_NOTIFY_DRY_RUN=1 "$root/bin/protoncal-notify" --worker)
+python3 -c "
+import json
+command = json.loads('''$notification_command''')
+assert '--action=default=Open in Proton' in command, command
+assert '--action=snooze-5=Snooze 5 min' in command, command
+assert '--action=snooze-15=Snooze 15 min' in command, command
+assert '--action=dismiss=Dismiss' in command, command
+print('   actions:', 4)
+"
+
+echo "== quick add prefill keeps the title out of argv"
+open_url=$(PROTONCAL_TITLE='Team sync' "$root/bin/protoncal-open" --date 2026-08-17 \
+  --time 09:30 --title-env --prefill --print)
+python3 -c "
+from urllib.parse import parse_qs, urlsplit
+url = urlsplit('$open_url')
+query = parse_qs(url.query)
+assert query['title'] == ['Team sync'], query
+assert query['startTime'] == ['09:30'], query
+print('   prefilled:', query['title'][0], query['startTime'][0])
+"
