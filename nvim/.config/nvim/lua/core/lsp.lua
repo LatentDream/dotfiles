@@ -6,6 +6,7 @@ vim.lsp.enable({
     "lua_ls",
     "metals",
     -- "omnisharp",
+    "rust_analyzer",
     "typescript",
     "yamlls",
     "zls"
