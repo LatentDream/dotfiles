@@ -107,3 +107,7 @@ export EDITOR=/Users/guillaume.thibault/tools/nvim-macos-arm64/bin/nvim
 export PATH="/Users/guillaume.thibault/.local/bin:$PATH"
 eval "$(but completions zsh)"
 
+if [[ -z ${STARSHIP_INITIALIZED-} ]]; then
+    typeset -g STARSHIP_INITIALIZED=1
+    eval "$(starship init zsh)"
+fi
