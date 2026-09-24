@@ -16,17 +16,27 @@ get_option() {
     printf '%s\n' "${value:-$default_value}"
 }
 
+map_get() {
+    local map="$1" key="$2" current_key value
+    REPLY=""
+    while IFS=$'\x1f' read -r current_key value; do
+        if [ "$current_key" = "$key" ]; then
+            REPLY="$value"
+            return
+        fi
+    done <<< "$map"
+}
+
 shorten_path() {
-    local path="$1" max_length="$2" git_root relative display suffix prefix=""
+    local path="$1" max_length="$2" repo_path display suffix prefix=""
     if ! [[ "$max_length" =~ ^[0-9]+$ ]] || [ "$max_length" -lt 4 ]; then
         max_length=25
     fi
-    git_root="$(git -C "$path" rev-parse --show-toplevel 2>/dev/null || true)"
-    if [ -n "$git_root" ]; then
-        relative="${path#"$git_root"}"
-        relative="${relative#/}"
+
+    repo_path="${path#"$HOME/repo/"}"
+    if [ "$repo_path" != "$path" ]; then
         prefix='/'
-        display="${git_root##*/}${relative:+/$relative}"
+        display="$repo_path"
     else
         display="${path/#"$HOME"/~}"
     fi
@@ -41,16 +51,39 @@ shorten_path() {
 
 mode='notifications'
 case "${1:-}" in
-    --all|--has-all-agents) mode='all' ;;
-    --has-agents|'') ;;
-    *) printf 'Usage: agent-picker.sh [--all|--has-agents|--has-all-agents]\n' >&2; exit 2 ;;
+    --all) mode='all' ;;
+    '') ;;
+    *) printf 'Usage: agent-picker.sh [--all]\n' >&2; exit 2 ;;
 esac
 
 records=()
 path_max_length="$(get_option '@agent-indicator-picker-path-max-length' '25')"
+pane_states=""
+pane_agents=""
+pane_session_names=""
+
+while IFS= read -r line; do
+    case "$line" in
+        TMUX_AGENT_PANE_*_STATE=*) suffix='STATE' ;;
+        TMUX_AGENT_PANE_*_AGENT=*) suffix='AGENT' ;;
+        TMUX_AGENT_PANE_*_SESSION_NAME=*) suffix='SESSION_NAME' ;;
+        *) continue ;;
+    esac
+    pane_id="${line#TMUX_AGENT_PANE_}"
+    pane_id="${pane_id%%_"${suffix}"=*}"
+    value="${line#*=}"
+    case "$suffix" in
+        STATE) pane_states="${pane_states}${pane_id}"$'\x1f'"${value}"$'\n' ;;
+        AGENT) pane_agents="${pane_agents}${pane_id}"$'\x1f'"${value}"$'\n' ;;
+        SESSION_NAME) pane_session_names="${pane_session_names}${pane_id}"$'\x1f'"${value}"$'\n' ;;
+    esac
+done < <(tmux show-environment -g 2>/dev/null || true)
+
 detected_agents=""
 if [ "$mode" = 'all' ]; then
-    detected_agents="$(
+    while IFS=$'\x1f' read -r pane_id agent; do
+        [ -n "$pane_id" ] && detected_agents="${detected_agents}${pane_id}"$'\x1f'"${agent}"$'\n'
+    done < <(
         {
             tmux list-panes -a -F $'root\x1f#{pane_pid}\x1f#{pane_id}'
             ps -axo pid=,ppid=,comm= | awk '{ pid=$1; ppid=$2; $1=$2=""; sub(/^ +/, ""); printf "process\037%s\037%s\037%s\n", pid, ppid, $0 }'
@@ -71,13 +104,13 @@ if [ "$mode" = 'all' ]; then
                 }
             }
         '
-    )"
+    )
 fi
 
 while IFS=$'\x1f' read -r pane_id _ session window pane _ _ path pane_title; do
-    notification_state="$(tmux show-environment -g "TMUX_AGENT_PANE_${pane_id}_STATE" 2>/dev/null | sed 's/^[^=]*=//' || true)"
-    tracked_agent="$(tmux show-environment -g "TMUX_AGENT_PANE_${pane_id}_AGENT" 2>/dev/null | sed 's/^[^=]*=//' || true)"
-    session_name="$(tmux show-environment -g "TMUX_AGENT_PANE_${pane_id}_SESSION_NAME" 2>/dev/null | sed 's/^[^=]*=//' || true)"
+    map_get "$pane_states" "$pane_id"; notification_state="$REPLY"
+    map_get "$pane_agents" "$pane_id"; tracked_agent="$REPLY"
+    map_get "$pane_session_names" "$pane_id"; session_name="$REPLY"
 
     case "$notification_state" in
         needs-input) priority=1; state='waiting' ;;
@@ -92,7 +125,7 @@ while IFS=$'\x1f' read -r pane_id _ session window pane _ _ path pane_title; do
             *) continue ;;
         esac
     else
-        agent="$(printf '%s\n' "$detected_agents" | awk -F $'\x1f' -v pane="$pane_id" '$1 == pane { print $2; exit }')"
+        map_get "$detected_agents" "$pane_id"; agent="$REPLY"
         if [ -z "$agent" ]; then
             case "$notification_state" in
                 running|needs-input|done) agent="${tracked_agent:-unknown}" ;;
@@ -121,21 +154,12 @@ while IFS=$'\x1f' read -r pane_id _ session window pane _ _ path pane_title; do
     records+=("${priority}"$'\t'"${pane_id}"$'\t'"${display}")
 done < <(tmux list-panes -a -F $'#{pane_id}\x1f#{pane_pid}\x1f#{session_name}\x1f#{window_index}\x1f#{pane_index}\x1f#{pane_current_command}\x1f#{pane_start_command}\x1f#{pane_current_path}\x1f#{pane_title}')
 
-while IFS= read -r line; do
-    case "$line" in
-        TMUX_AGENT_PANE_*_STATE=*) ;;
-        *) continue ;;
-    esac
-    pane_id="${line#TMUX_AGENT_PANE_}"
-    pane_id="${pane_id%%_STATE=*}"
-    tmux display-message -p -t "$pane_id" '#{pane_id}' >/dev/null 2>&1 || cleanup_stale_record "$pane_id"
-done < <(tmux show-environment -g 2>/dev/null || true)
-
-case "${1:-}" in
-    --has-agents|--has-all-agents) [ "${#records[@]}" -gt 0 ]; exit ;;
-esac
-
 if [ "${#records[@]}" -eq 0 ]; then
+    if [ "$mode" = 'all' ]; then
+        tmux display-message 'No agents running'
+    else
+        tmux display-message 'No agents ready'
+    fi
     exit 0
 fi
 

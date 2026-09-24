@@ -8,16 +8,14 @@ all_picker_key="$(tmux show-option -gqv '@agent-indicator-all-picker-key' 2>/dev
 picker_width="$(tmux show-option -gqv '@agent-indicator-picker-width' 2>/dev/null || true)"
 picker_height="$(tmux show-option -gqv '@agent-indicator-picker-height' 2>/dev/null || true)"
 if [ -n "$picker_key" ]; then
-    tmux bind-key "$picker_key" if-shell \
-        "'$CURRENT_DIR/scripts/agent-picker.sh' --has-agents" \
-        "display-popup -T 'Agents' -w '${picker_width:-60%}' -h '${picker_height:-60%}' -E '$CURRENT_DIR/scripts/agent-picker.sh'" \
-        "display-message 'No agents ready'"
+    tmux bind-key "$picker_key" display-popup \
+        -T 'Agents' -w "${picker_width:-60%}" -h "${picker_height:-60%}" \
+        -E "$CURRENT_DIR/scripts/agent-picker.sh"
 fi
 if [ -n "$all_picker_key" ]; then
-    tmux bind-key "$all_picker_key" if-shell \
-        "'$CURRENT_DIR/scripts/agent-picker.sh' --has-all-agents" \
-        "display-popup -T 'All agents' -w '${picker_width:-60%}' -h '${picker_height:-60%}' -E '$CURRENT_DIR/scripts/agent-picker.sh --all'" \
-        "display-message 'No agents running'"
+    tmux bind-key "$all_picker_key" display-popup \
+        -T 'All agents' -w "${picker_width:-60%}" -h "${picker_height:-60%}" \
+        -E "$CURRENT_DIR/scripts/agent-picker.sh --all"
 fi
 
 animation_pid="$(tmux show-environment -g TMUX_AGENT_ANIMATION_PID 2>/dev/null | sed 's/^[^=]*=//' || true)"
