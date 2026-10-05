@@ -1,11 +1,13 @@
 vim.lsp.enable({
     "bashls",
+    "basedpyright",
     "csharp_ls",
     "erlang_ls",
     "gopls",
     "lua_ls",
     "metals",
     -- "omnisharp",
+    "ruff",
     "rust_analyzer",
     "typescript",
     "yamlls",
