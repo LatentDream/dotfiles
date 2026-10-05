@@ -8,8 +8,8 @@ default:
 # ── Stow ──────────────────────────────────────────────────────────────────────
 
 # OS-specific package lists
-_packages_linux := "gitconfig nvim tmux bash k9s lsd scripts zed yazi merlion wezterm atuin starship atuin"
-_packages_mac   := "gitconfig nvim tmux zsh karabiner lazygit btop jetbrains k9s lsd merlion scripts yazi zed atuin starship atuin"
+_packages_linux := "gitconfig nvim tmux bash k9s lsd scripts zed merlion wezterm atuin starship atuin"
+_packages_mac   := "gitconfig nvim tmux zsh karabiner lazygit btop jetbrains k9s lsd merlion scripts zed atuin starship atuin"
 _packages       := if os() == "macos" { _packages_mac } else { _packages_linux }
 
 # Stow a package, or all packages when none is specified: `just stow [package]`
@@ -169,7 +169,6 @@ install-cargo-utils:
     cargo install zoxide --locked
     cargo install bat --locked
     cargo install just --locked
-    cargo install yazi-fm yazi-cli --locked
     cargo install lsd --locked
     cargo install git-delta --locked
     cargo install just-lsp --locked
