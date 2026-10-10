@@ -5,6 +5,8 @@ set -euo pipefail
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OPENCODE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode/plugins"
 OPENCODE_PLUGIN="$OPENCODE_DIR/opencode-tmux-agent-indicator.js"
+PI_DIR="$HOME/.pi/agent/extensions"
+PI_EXTENSION="$PI_DIR/pi-tmux-agent-indicator.ts"
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 STATE_SCRIPT="$CURRENT_DIR/scripts/agent-state.sh"
 CLAUDE_STATUSLINE="$CURRENT_DIR/scripts/claude-statusline.sh"
@@ -14,8 +16,9 @@ command -v jq >/dev/null 2>&1 || {
     exit 1
 }
 
-mkdir -p "$OPENCODE_DIR" "$(dirname "$CLAUDE_SETTINGS")"
+mkdir -p "$OPENCODE_DIR" "$PI_DIR" "$(dirname "$CLAUDE_SETTINGS")"
 ln -sfn "$CURRENT_DIR/plugins/opencode-tmux-agent-indicator.js" "$OPENCODE_PLUGIN"
+ln -sfn "$CURRENT_DIR/plugins/pi-tmux-agent-indicator.ts" "$PI_EXTENSION"
 
 if [ ! -f "$CLAUDE_SETTINGS" ]; then
     printf '{}\n' > "$CLAUDE_SETTINGS"
@@ -43,4 +46,4 @@ jq --arg script "$STATE_SCRIPT" --arg statusline "$CLAUDE_STATUSLINE" '
 mv "$tmp" "$CLAUDE_SETTINGS"
 trap - EXIT
 
-printf 'OpenCode: %s\nClaude: %s\n' "$OPENCODE_PLUGIN" "$CLAUDE_SETTINGS"
+printf 'OpenCode: %s\nPi: %s\nClaude: %s\n' "$OPENCODE_PLUGIN" "$PI_EXTENSION" "$CLAUDE_SETTINGS"

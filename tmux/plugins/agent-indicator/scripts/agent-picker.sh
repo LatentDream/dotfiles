@@ -94,7 +94,7 @@ if [ "$mode" = 'all' ]; then
                 for (pid in command) {
                     name=command[pid]
                     sub(/^.*\//, "", name)
-                    if (name != "opencode" && name != "claude" && name != "harness") continue
+                    if (name != "opencode" && name != "claude" && name != "harness" && name != "pi") continue
                     ancestor=pid
                     while (ancestor != "" && !(ancestor in root)) ancestor=parent[ancestor]
                     if (ancestor in root && !(root[ancestor] in found)) {
