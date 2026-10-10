@@ -2,18 +2,20 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 
 # Configure the format
-format = """$directory\
+format = """${custom.path}\
 $character"""
 # $git_status\
 
 add_newline = false
 
-# Directory configuration - Gruvbox blue
-[directory]
-truncation_length = 10
-truncate_to_repo = true
-format = "[$path]($style) "
+# Directory configuration - Gruvbox blue. Starship's directory truncation is
+# component-based, so use a custom module to cap the rendered path at 32 chars
+# with a single-character ellipsis.
+[custom.path]
+command = '''python3 -c 'import os; p = os.getcwd(); h = os.path.expanduser("~"); p = "~" + p[len(h):] if p == h or p.startswith(h + os.sep) else p; print(p if len(p) <= 32 else "…" + p[-31:])' '''
+format = "[$output]($style) "
 style = "bold #83a598"
+when = "true"
 
 # Git branch configuration - Gruvbox purple
 # [git_branch]
