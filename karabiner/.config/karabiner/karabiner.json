@@ -81,14 +81,14 @@
                         ]
                     },
                     {
-                        "description": "Left Option+Left Command+4 opens spotify",
+                        "description": "Left Option+Left Command+4 opens bb",
                         "manipulators": [
                             {
                                 "from": {
                                     "key_code": "4",
                                     "modifiers": { "mandatory": ["left_option", "left_command"] }
                                 },
-                                "to": [{ "shell_command": "open -a spotify" }],
+                                "to": [{ "shell_command": "open -a bb" }],
                                 "type": "basic"
                             }
                         ]
