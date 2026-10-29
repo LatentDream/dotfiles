@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Background status checks must not refresh/write the index and contend with
+# foreground operations (e.g. rebase) for index.lock. Applies to every Git call.
+export GIT_OPTIONAL_LOCKS=0
+
 path="$1"
 [ -d "$path" ] || exit 0
 
