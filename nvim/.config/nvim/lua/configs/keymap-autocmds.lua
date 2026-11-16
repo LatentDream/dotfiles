@@ -20,6 +20,10 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		map('gI', require('fzf-lua').lsp_implementations, 'Goto Implementation')
 		map('<leader>ds', require('fzf-lua').lsp_document_symbols, 'Document Symbols')
 		map('<leader>ca', require('fzf-lua').lsp_code_actions, 'Code Action')
+		vim.keymap.set("x", "<leader>ca", vim.lsp.buf.code_action, {
+			buffer = event.buf,
+			desc = "LSP: Code Action",
+		})
 		map('gt', require('fzf-lua').lsp_typedefs, 'Goto Type Definition')
 
 		local function client_supports_method(client, method, bufnr)

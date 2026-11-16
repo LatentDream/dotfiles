@@ -35,6 +35,9 @@ vim.api.nvim_set_keymap('n', 'gh', ':ClangdSwitchSourceHeader<CR>',
 -- Normal esc in terminal mode
 vim.keymap.set('t', '<Esc>', [[<C-\><C-n>]])
 
+-- Prompt for a terminal command without executing it yet
+vim.keymap.set('n', '<C-;>', ':term ', { desc = 'Run terminal command' })
+
 -- Open terminal and enter insert mode
 vim.keymap.set('n', '<leader>tt', ':bel term<CR>i', {
     noremap = true,

@@ -3,6 +3,8 @@ local ensure_installed = {
     "c",
     "html",
     "javascript",
+    "typescript",
+    "tsx",
     "json",
     "lua",
     "luadoc",

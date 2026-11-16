@@ -12,7 +12,7 @@ wk.add({
   { "<leader>g_", hidden = true },
   { "<leader>i", group = "Insert" },
   { "<leader>i_", hidden = true },
-  { "<leader>r", group = "Rename" },
+  { "<leader>r", group = "Refactor / Replace", mode = { "n", "x" } },
   { "<leader>r_", hidden = true },
   { "<leader>s", group = "Search" },
   { "<leader>s_", hidden = true },

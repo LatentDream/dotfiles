@@ -11,6 +11,9 @@
   # Show the last commit
   last = log -1 HEAD
 
+  # Delegate stack commands to GitHub CLI
+  stack = !gh stack
+
   # Worktree shortcut
   wt = worktree
 
@@ -178,6 +181,9 @@
     } \
     }'; \
     }; f"
+
+[advice]
+  statusHints = false
 
 [column]
   ui = auto
